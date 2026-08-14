@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
-"""SQLite-модели и доступ к данным."""
+"""SQLite-модели и доступ к данным приложения."""
+
 import os
 import sqlite3
+from datetime import datetime, timedelta, timezone
 
 from flask import g
+from werkzeug.security import generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data", "career.db"))
@@ -64,9 +66,10 @@ CREATE INDEX IF NOT EXISTS idx_app_site ON applications(site_id);
 
 def db():
     if "db" not in g:
-        g.db = sqlite3.connect(DB_PATH)
+        g.db = sqlite3.connect(DB_PATH, timeout=15)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
+        g.db.execute("PRAGMA busy_timeout = 15000")
     return g.db
 
 
@@ -77,12 +80,17 @@ def close_db(e=None):
 
 
 def init_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    db_parent = os.path.dirname(os.path.abspath(DB_PATH))
+    os.makedirs(db_parent, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    con = sqlite3.connect(DB_PATH)
-    con.executescript(SCHEMA)
-    con.commit()
-    con.close()
+    con = sqlite3.connect(DB_PATH, timeout=15)
+    try:
+        con.execute("PRAGMA journal_mode = WAL")
+        con.execute("PRAGMA foreign_keys = ON")
+        con.executescript(SCHEMA)
+        con.commit()
+    finally:
+        con.close()
 
 
 # ------------------------------------------------------------- settings ----
@@ -107,7 +115,7 @@ def get_site(key, by="token"):
         return None
     try:
         key = str(key)
-    except Exception:
+    except (TypeError, ValueError):
         return None
     if not key:
         return None
@@ -130,22 +138,28 @@ def get_admin_by_login(login):
 
 
 def create_admin(login, password):
-    from werkzeug.security import generate_password_hash
-    from datetime import datetime, timedelta, timezone
-
-    now = datetime.now(timezone(timedelta(hours=TZ))).isoformat()
+    created_at = datetime.now(timezone(timedelta(hours=TZ))).isoformat()
     db().execute(
         "INSERT INTO admins (login, password_hash, created_at) VALUES (?,?,?)",
-        (login, generate_password_hash(password), now),
+        (login, generate_password_hash(password), created_at),
     )
     db().commit()
 
 
 def seed_default_admin():
-    login = os.environ.get("ADMIN_LOGIN", "admin")
+    login = os.environ.get("ADMIN_LOGIN", "admin").strip() or "admin"
     password = os.environ.get("ADMIN_PASSWORD", "")
-    if get_admin_by_login(login) is None:
-        if not password:
-            password = "msb2026!"
-            print(f"[!] Создан админ по умолчанию: {login} / {password} — СМЕНИТЕ ЕГО В ПАНЕЛИ!")
+    if get_admin_by_login(login) is not None:
+        return
+    if not password:
+        raise RuntimeError(
+            "ADMIN_PASSWORD обязателен при первом запуске. "
+            "Задайте надёжный пароль в переменных окружения."
+        )
+    if len(password) < 8:
+        raise RuntimeError("ADMIN_PASSWORD должен содержать минимум 8 символов.")
+    try:
         create_admin(login, password)
+    except sqlite3.IntegrityError:
+        # Another Gunicorn worker may have created the same initial admin.
+        db().rollback()

@@ -148,10 +148,11 @@
           <div class="ferr" data-i18n="experience_e"></div>
         </div>
 
-        <div class="field" data-f="city">
+        <div class="field {{ 'bad' if errors and errors.city }}" data-f="city">
           <label for="city" data-i18n="city"></label>
           <input type="text" id="city" name="city" maxlength="80"
                  value="{{ form.city if form else '' }}" data-ph="city_ph">
+          <div class="ferr" data-i18n="city_e"></div>
         </div>
       </div>
 
@@ -198,7 +199,7 @@ const T = {
     email: "E-mail (не обязательно)", email_ph: "example@mail.com", email_e: "Неверный e-mail",
     experience: "Опыт работы", experience_e: "Выберите опыт работы",
     exp_sel: "Выберите вариант", exp0: "Без опыта", exp1: "Меньше 1 года", exp2: "1–3 года", exp3: "3–5 лет", exp4: "Больше 5 лет",
-    city: "Город / этрап", city_ph: "Ашхабад",
+    city: "Город / этрап", city_ph: "Ашхабад", city_e: "Название города слишком длинное",
     message: "О себе", message_ph: "Кратко расскажите о себе: чем занимались, что умеете…", message_e: "Слишком длинный текст (макс. 2000)",
     file: "Резюме или документы", file_drop: "Нажмите или перетащите файл сюда", file_hint: "PDF, DOC(X), JPG или PNG · до 5 МБ",
     file_e: "Неподходящий файл",
@@ -215,7 +216,7 @@ const T = {
     email: "E-mail (hökmany däl)", email_ph: "example@mail.com", email_e: "E-nädogry ýazylan",
     experience: "Iş tejribäňiz", experience_e: "Iş tejribäňizi saýlaň",
     exp_sel: "Warianty saýlaň", exp0: "Tejribesiz", exp1: "1 ýyldan az", exp2: "1–3 ýyl", exp3: "3–5 ýyl", exp4: "5 ýyldan köp",
-    city: "Şäher / etrap", city_ph: "Aşgabat",
+    city: "Şäher / etrap", city_ph: "Aşgabat", city_e: "Şäheriň ady gaty uzyn",
     message: "Özüňiz barada", message_ph: "Gysgaça özüňiz barada ýazyň: näme işledim, näme başarýaryn…", message_e: "Tekst gaty uzyn (iň köp 2000)",
     file: "Rezume ýa-da resminamalar", file_drop: "Şu ýere basyň ýa-da faýly süýräň", file_hint: "PDF, DOC(X), JPG ýa-da PNG · 5 MB çenli",
     file_e: "Uýgunsyz faýl",

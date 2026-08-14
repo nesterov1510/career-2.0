@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-"""MSB Career — анкеты вакансий с отправкой в Telegram и скрытой админ-панелью."""
+"""MSB Career — анкеты вакансий с отправкой в Telegram и админ-панелью."""
+
 import html as html_mod
 import os
 import re
@@ -8,28 +8,88 @@ import sqlite3
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
+from functools import wraps
 from threading import Lock
-from urllib import parse
+from urllib.parse import urlsplit
 
 import requests
-from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
-                   request, send_from_directory, session, url_for)
+from flask import (
+    Blueprint,
+    Flask,
+    abort,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 from flask_wtf.csrf import CSRFProtect
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models import (ALLOWED_EXT, ALLOWED_LABEL, DB_PATH, UPLOAD_DIR, TZ,
-                    close_db, create_admin, db, get_admin_by_login,
-                    get_setting, get_site, init_db, seed_default_admin,
-                    set_setting)
+from models import (
+    ALLOWED_EXT,
+    ALLOWED_LABEL,
+    DB_PATH,
+    TZ,
+    UPLOAD_DIR,
+    close_db,
+    db,
+    get_admin_by_login,
+    get_setting,
+    get_site,
+    init_db,
+    seed_default_admin,
+    set_setting,
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SECRET_KEY = os.environ.get("SECRET_KEY", "")
-if not SECRET_KEY:
-    print("[WARN] SECRET_KEY не задан — сгенерирован случайный (задайте свой через ENV!)")
-    SECRET_KEY = secrets.token_hex(32)
 
+
+def _secret_key():
+    """Return one stable key, including when several Gunicorn workers start."""
+    configured = os.environ.get("SECRET_KEY", "").strip()
+    if configured:
+        if len(configured) < 32:
+            print("[WARN] SECRET_KEY короче 32 символов; используйте длинный случайный ключ.")
+        return configured
+
+    key_file = os.environ.get(
+        "SECRET_KEY_FILE", os.path.join(os.path.dirname(DB_PATH) or BASE_DIR, ".secret_key")
+    )
+    os.makedirs(os.path.dirname(os.path.abspath(key_file)), exist_ok=True)
+    try:
+        with open(key_file, encoding="ascii") as f:
+            saved = f.read().strip()
+        if saved:
+            return saved
+    except FileNotFoundError:
+        pass
+
+    generated = secrets.token_hex(32)
+    try:
+        # Exclusive creation prevents workers from overwriting one another's key.
+        fd = os.open(key_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="ascii") as f:
+            f.write(generated)
+        print(f"[WARN] SECRET_KEY не задан; постоянный ключ создан в {key_file}")
+        return generated
+    except FileExistsError:
+        # The winning worker may still be writing the just-created file.
+        for _ in range(20):
+            with open(key_file, encoding="ascii") as f:
+                saved = f.read().strip()
+            if saved:
+                return saved
+            time.sleep(0.05)
+        raise RuntimeError(f"Не удалось прочитать SECRET_KEY_FILE: {key_file}")
+
+
+SECRET_KEY = _secret_key()
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # за nginx
 app.config.update(
@@ -37,10 +97,28 @@ app.config.update(
     MAX_CONTENT_LENGTH=20 * 1024 * 1024,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "").lower()
+    in ("1", "true", "yes"),
     PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
 )
-csrf = CSRFProtect(app)  # публичная форма анкет освобождена ниже через @csrf.exempt
+csrf = CSRFProtect(app)  # публичная форма защищена отдельным временным токеном
 app.teardown_appcontext(close_db)
+
+
+@app.after_request
+def security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+    )
+    if request.is_secure:
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+    return response
+
 
 public_signer = URLSafeTimedSerializer(SECRET_KEY, salt="public-form")
 
@@ -48,6 +126,8 @@ PANEL = os.environ.get("PANEL_PATH", "/x-panel-7f3a").strip()
 if not PANEL.startswith("/"):
     PANEL = "/" + PANEL
 PANEL = PANEL.rstrip("/")
+if not PANEL or not re.fullmatch(r"/[A-Za-z0-9_-]+", PANEL):
+    raise RuntimeError("PANEL_PATH должен иметь вид /secret-panel (без вложенных путей)")
 
 MAX_FILE = 5 * 1024 * 1024
 TIMEZONE = timezone(timedelta(hours=TZ))
@@ -112,8 +192,24 @@ def phone_display(p):
 def fmt_dt(s):
     try:
         return datetime.fromisoformat(s).strftime("%d.%m.%Y %H:%M")
-    except Exception:
+    except (TypeError, ValueError):
         return s or ""
+
+
+def clean_url(value):
+    """Accept only safe absolute web URLs (or an empty value)."""
+    value = (value or "").strip()
+    if not value:
+        return ""
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return None
+    if parsed.username or parsed.password:
+        return None
+    return value
 
 
 def human_size(n):
@@ -127,21 +223,28 @@ def human_size(n):
     return f"{n} Б"
 
 
-def tg_call(method, **data):
+def tg_call(method, files=None, **data):
     token = (get_setting("bot_token") or "").strip()
     if not token:
         return {"ok": False, "error": "Bot token не задан в настройках панели"}
     try:
-        r = requests.post(
+        response = requests.post(
             f"https://api.telegram.org/bot{token}/{method}",
-            data=data, timeout=25,
+            data=data,
+            files=files,
+            timeout=25,
         )
         try:
-            return r.json()
+            result = response.json()
         except ValueError:
-            return {"ok": False, "error": f"HTTP {r.status_code}"}
-    except requests.RequestException as e:
-        return {"ok": False, "error": f"Сеть: {e}"}
+            return {"ok": False, "error": f"Telegram вернул HTTP {response.status_code}"}
+        if response.ok:
+            return result
+        result.setdefault("ok", False)
+        result.setdefault("error", f"Telegram вернул HTTP {response.status_code}")
+        return result
+    except requests.RequestException as exc:
+        return {"ok": False, "error": f"Сеть: {exc}"}
 
 
 def send_application(app_id):
@@ -190,20 +293,39 @@ def send_application(app_id):
 
     if row["file_storage"]:
         fpath = os.path.join(UPLOAD_DIR, row["file_storage"])
-        if os.path.exists(fpath):
-            with open(fpath, "rb") as f:
-                res = tg_call(
-                    "sendDocument",
-                    chat_id=chat_id,
-                    document=f,
-                    caption=caption,
-                    parse_mode="HTML",
-                    disable_content_type=True,
-                )
-            if res.get("ok"):
-                return True, "ok"
-    res = tg_call("sendMessage", chat_id=chat_id, text=caption,
-                  parse_mode="HTML", disable_web_page_preview=True)
+        if not os.path.isfile(fpath):
+            return False, "Прикреплённый файл не найден на сервере"
+
+        # Telegram limits document captions to 1024 characters. For a long
+        # application, send the file first with a short caption, then details.
+        document_caption = caption
+        details_required = len(caption) > 1000
+        if details_required:
+            document_caption = (
+                f"📎 Документ к заявке №{row['id']}\n"
+                f"👤 {html_mod.escape(row['name'])}"
+            )
+        with open(fpath, "rb") as uploaded:
+            res = tg_call(
+                "sendDocument",
+                chat_id=chat_id,
+                caption=document_caption,
+                parse_mode="HTML",
+                files={"document": (row["file_name"] or "document", uploaded)},
+            )
+        if not res.get("ok"):
+            desc = res.get("description") or res.get("error") or "ошибка отправки файла"
+            return False, desc
+        if not details_required:
+            return True, "ok"
+
+    res = tg_call(
+        "sendMessage",
+        chat_id=chat_id,
+        text=caption,
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+    )
     if res.get("ok"):
         return True, "ok"
     desc = (res.get("description") or res.get("error") or "ошибка")
@@ -296,22 +418,25 @@ def handle_apply(token_or_slug):
 
     name = re.sub(r"\s+", " ", (request.form.get("name") or "")).strip()
     email = (request.form.get("email") or "").strip()
-    prefix = request.form.get("prefix", "+993").strip() or "+993"
+    prefix = (request.form.get("prefix") or "+993").strip()
+    allowed_prefixes = {"+993", "+7", "+998"}
     digits = re.sub(r"\D", "", request.form.get("phone", ""))
     phone = prefix + digits
-    city = (request.form.get("city") or "").strip()[:80]
+    city = (request.form.get("city") or "").strip()
     experience = request.form.get("experience", "")
     message = (request.form.get("message") or "").strip()
 
     errors = {}
-    if len(name) < 2:
+    if len(name) < 2 or len(name) > 120:
         errors["name"] = "Укажите имя и фамилию" if lang == "ru" else "Adyňyzy we familiýaňyzy ýazyň"
-    if len(digits) < 5:
+    if prefix not in allowed_prefixes or not 5 <= len(digits) <= 12:
         errors["phone"] = "Укажите номер телефона" if lang == "ru" else "Telefon belgiňizi ýazyň"
     if experience not in ALLOWED_LABEL:
         errors["experience"] = "Выберите опыт работы" if lang == "ru" else "Iş tejribäňizi saýlaň"
-    if email and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+    if len(email) > 120 or (email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email)):
         errors["email"] = "Неверный e-mail" if lang == "ru" else "E-nädogry ýazylan"
+    if len(city) > 80:
+        errors["city"] = "Название города слишком длинное" if lang == "ru" else "Şäheriň ady gaty uzyn"
     if len(message) > 2000:
         errors["message"] = "Слишком длинный текст (макс. 2000)" if lang == "ru" else "Tekst gaty uzyn (iň köp 2000)"
 
@@ -340,23 +465,32 @@ def handle_apply(token_or_slug):
                                form=request.form), 400
 
     storage_name = None
+    storage_path = None
     if file_ok:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
         storage_name = f"{uuid.uuid4().hex}.{ext}"
-        file.save(os.path.join(UPLOAD_DIR, storage_name))
+        storage_path = os.path.join(UPLOAD_DIR, storage_name)
+        file.save(storage_path)
 
-    cur = db().execute(
-        """INSERT INTO applications (site_id, name, phone, email, city, experience,
-                                     message, file_name, file_storage, file_size,
-                                     status, tg_ok, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?, 'new', 0, ?)""",
-        (site["id"], name[:120], phone[:32], email[:120], city, experience,
-         message[:4000],
-         file.filename[:180] if file_ok else None,
-         storage_name,
-         fsize if file_ok else None,
-         now().isoformat()),
-    )
-    db().commit()
+    try:
+        cur = db().execute(
+            """INSERT INTO applications (site_id, name, phone, email, city, experience,
+                                         message, file_name, file_storage, file_size,
+                                         status, tg_ok, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?, 'new', 0, ?)""",
+            (site["id"], name, phone, email, city, experience,
+             message, file.filename[:180] if file_ok else None,
+             storage_name, fsize if file_ok else None, now().isoformat()),
+        )
+        db().commit()
+    except sqlite3.DatabaseError:
+        db().rollback()
+        if storage_path:
+            try:
+                os.remove(storage_path)
+            except OSError:
+                pass
+        raise
     app_id = cur.lastrowid
 
     ok, info = send_application(app_id)
@@ -382,8 +516,6 @@ def apply_success():
 
 
 # ============================================================== АДМИН-ПАНЕЛЬ ===
-from flask import Blueprint  # noqa: E402
-
 admin = Blueprint("admin", __name__, url_prefix=PANEL)
 
 
@@ -392,8 +524,6 @@ def logged():
 
 
 def auth_required(fn):
-    from functools import wraps
-
     @wraps(fn)
     def wrapper(*a, **kw):
         if not logged():
@@ -420,18 +550,20 @@ def login():
             return render_template("panel/login.html"), 429
         a = get_admin_by_login(request.form.get("login", "").strip())
         if a and check_password_hash(a["password_hash"], request.form.get("password", "")):
+            session.clear()
             session.permanent = True
             session["admin_id"] = a["id"]
             session["admin_login"] = a["login"]
             nxt = request.args.get("next") or ""
-            if not nxt.startswith(PANEL):
+            if not (nxt == PANEL or nxt.startswith(PANEL + "/")):
                 nxt = ""
             return redirect(nxt or url_for("admin.dashboard"))
         flash("Неверный логин или пароль.", "err")
     return render_template("panel/login.html")
 
 
-@admin.route("/logout/")
+@admin.route("/logout/", methods=["POST"])
+@auth_required
 def logout():
     session.clear()
     return redirect(url_for("admin.login"))
@@ -464,9 +596,15 @@ def sites():
     if request.method == "POST":
         action = request.form.get("action")
         name = re.sub(r"\s+", " ", (request.form.get("name") or "")).strip()
+        site_url = clean_url(request.form.get("url"))
+        vacancy = (request.form.get("vacancy") or "").strip()
         if action == "add":
-            if not name:
-                flash("Укажите название сайта.", "err")
+            if not name or len(name) > 140:
+                flash("Укажите название сайта (не более 140 символов).", "err")
+            elif site_url is None or len(site_url) > 300:
+                flash("Укажите корректный адрес сайта с http:// или https://.", "err")
+            elif len(vacancy) > 200:
+                flash("Название вакансии не должно превышать 200 символов.", "err")
             else:
                 slug = base = slugify(name)
                 i = 2
@@ -476,10 +614,7 @@ def sites():
                 db().execute(
                     "INSERT INTO sites (name, slug, token, url, vacancy, is_active, is_closed, created_at) "
                     "VALUES (?,?,?,?,?,1,0,?)",
-                    (name[:140], slug[:80], gen_token(),
-                     (request.form.get("url") or "").strip()[:300],
-                     (request.form.get("vacancy") or "").strip()[:200],
-                     now().isoformat()),
+                    (name, slug[:80], gen_token(), site_url, vacancy, now().isoformat()),
                 )
                 db().commit()
                 flash("Сайт добавлен. Ссылка на анкету готова.", "ok")
@@ -491,16 +626,20 @@ def sites():
             return redirect(url_for("admin.sites"))
 
         if action == "update":
-            db().execute(
-                "UPDATE sites SET name=?, url=?, vacancy=?, is_closed=? WHERE id=?",
-                (name[:140] or site["name"],
-                 (request.form.get("url") or "").strip()[:300],
-                 (request.form.get("vacancy") or "").strip()[:200],
-                 1 if request.form.get("is_closed") else 0,
-                 sid),
-            )
-            db().commit()
-            flash("Изменения сохранены.", "ok")
+            if not name or len(name) > 140:
+                flash("Укажите название сайта (не более 140 символов).", "err")
+            elif site_url is None or len(site_url) > 300:
+                flash("Укажите корректный адрес сайта с http:// или https://.", "err")
+            elif len(vacancy) > 200:
+                flash("Название вакансии не должно превышать 200 символов.", "err")
+            else:
+                db().execute(
+                    "UPDATE sites SET name=?, url=?, vacancy=?, is_closed=? WHERE id=?",
+                    (name, site_url, vacancy,
+                     1 if request.form.get("is_closed") else 0, sid),
+                )
+                db().commit()
+                flash("Изменения сохранены.", "ok")
         elif action == "regen":
             db().execute("UPDATE sites SET token=? WHERE id=?", (gen_token(), sid))
             db().commit()
@@ -617,9 +756,16 @@ def settings():
         if what == "telegram":
             token = request.form.get("bot_token", "").strip()
             chat = request.form.get("chat_id", "").strip()
-            set_setting("bot_token", token)
-            set_setting("chat_id", chat)
-            flash("Настройки Telegram сохранены.", "ok")
+            token_valid = not token or re.fullmatch(r"\d{5,15}:[A-Za-z0-9_-]{20,}", token)
+            chat_valid = not chat or re.fullmatch(r"-?\d{1,20}", chat)
+            if not token_valid:
+                flash("Неверный формат токена Telegram-бота.", "err")
+            elif not chat_valid:
+                flash("Chat ID должен содержать только цифры и необязательный минус.", "err")
+            else:
+                set_setting("bot_token", token)
+                set_setting("chat_id", chat)
+                flash("Настройки Telegram сохранены.", "ok")
         elif what == "password":
             a = db().execute("SELECT * FROM admins WHERE id=?",
                              (session.get("admin_id"),)).fetchone()
@@ -670,8 +816,20 @@ def settings_botinfo():
 
 # ------------------------------------------------------------------ ошибки ---
 @app.errorhandler(404)
-def not_found(e):
+def not_found(_error):
     return render_template("404.html"), 404
+
+
+@app.errorhandler(413)
+def too_large(_error):
+    # Do not access request.form here: parsing the oversized body raises 413 again.
+    lang = request.args.get("lang", "ru")
+    message = (
+        "Размер запроса слишком большой. Файл должен быть не больше 5 МБ."
+        if lang != "tm"
+        else "Talabyň ölçegi gaty uly. Faýl 5 MB-den uly bolmaly däl."
+    )
+    return render_template("apply_closed.html", reason="error", message=message), 413
 
 
 app.register_blueprint(admin)

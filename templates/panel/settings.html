@@ -11,7 +11,7 @@
     <input type="hidden" name="what" value="telegram">
     <div class="field">
       <label>Токен бота (bot token)</label>
-      <input type="text" name="bot_token" value="{{ bot_token }}" class="mono" placeholder="123456789:AAF...">
+      <input type="password" name="bot_token" value="{{ bot_token }}" class="mono" placeholder="123456789:AAF..." autocomplete="off">
       <div class="hint">Создайте бота у <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> → команда <span class="mono">/newbot</span> → скопируйте токен.</div>
     </div>
     <div class="field">
@@ -64,19 +64,27 @@
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 const box = document.getElementById("tg-result");
 function show(ok, msg){
-  box.innerHTML = '<div class="flash ' + (ok ? "ok" : "err") + '" style="margin:0">' + msg + "</div>";
+  const result = document.createElement("div");
+  result.className = "flash " + (ok ? "ok" : "err");
+  result.style.margin = "0";
+  result.textContent = msg;
+  box.replaceChildren(result);
 }
-async function checkBot(){
-  box.innerHTML = '<div class="flash ok" style="margin:0">Проверяем…</div>';
-  const r = await fetch("{{ url_for('admin.settings_botinfo') }}", {method: "POST", headers: {"X-CSRFToken": csrf}});
-  const d = await r.json();
-  show(d.ok, d.ok ? d.msg : "Ошибка: " + d.error);
+async function callTelegram(url, pending){
+  show(true, pending);
+  try {
+    const response = await fetch(url, {method: "POST", headers: {"X-CSRFToken": csrf}});
+    const data = await response.json();
+    show(data.ok, data.ok ? data.msg : "Ошибка: " + (data.error || "неизвестная ошибка"));
+  } catch (_) {
+    show(false, "Ошибка сети. Попробуйте ещё раз.");
+  }
 }
-async function sendTest(){
-  box.innerHTML = '<div class="flash ok" style="margin:0">Отправляем…</div>';
-  const r = await fetch("{{ url_for('admin.settings_test') }}", {method: "POST", headers: {"X-CSRFToken": csrf}});
-  const d = await r.json();
-  show(d.ok, d.ok ? d.msg : "Ошибка: " + d.error);
+function checkBot(){
+  return callTelegram("{{ url_for('admin.settings_botinfo') }}", "Проверяем…");
+}
+function sendTest(){
+  return callTelegram("{{ url_for('admin.settings_test') }}", "Отправляем…");
 }
 </script>
 {% endblock %}

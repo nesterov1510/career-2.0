@@ -1,13 +1,15 @@
 # Интеграционный тест полного цикла: панель → сайт → анкета → заявка в БД
 import io
+import os
 import re
 import sqlite3
 import sys
 
 import requests
 
-BASE = "http://127.0.0.1:5000"
-PANEL = "/x-panel-7f3a"
+BASE = os.environ.get("TEST_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+PANEL = os.environ.get("PANEL_PATH", "/x-panel-7f3a").rstrip("/")
+DB_PATH = os.environ.get("DB_PATH", "data/career.db")
 ok_count = 0
 
 
@@ -82,10 +84,11 @@ r = s.post(f"{BASE}/apply/{token}/", data={
 check("успех + номер заявки", r.status_code == 200 and "Анкета отправлена" in r.text and "№" in r.text)
 
 print("== Проверка БД ==")
-con = sqlite3.connect("data/career.db")
+con = sqlite3.connect(DB_PATH)
 con.row_factory = sqlite3.Row
 row = con.execute("SELECT * FROM applications ORDER BY id DESC LIMIT 1").fetchone()
 check("заявка сохранена", row is not None)
+app_id = row["id"]
 check("ФИО", row["name"] == "Мердан Худайгулиев")
 check("телефон", row["phone"] == "+99363123456")
 check("файл сохранён", row["file_name"] == "resume.pdf" and row["file_storage"])
@@ -93,30 +96,34 @@ check("TG помечен как недоставленный (бот не нас
 print(f"    tg_error: {row['tg_error']}")
 
 print("== Валидация ==")
+count_before = con.execute("SELECT COUNT(*) c FROM applications").fetchone()["c"]
 r = s.get(f"{BASE}/apply/{token}/")
 ftok = re.search(r'name="form_token" value="([^"]+)"', r.text).group(1)
 r = s.post(f"{BASE}/apply/{token}/", data={
     "form_token": ftok, "lang": "ru", "name": "X", "prefix": "+993",
     "phone": "1", "experience": "", "email": "bad",
 }, files={"file": ("virus.exe", io.BytesIO(b"x"), "application/octet-stream")})
-check("ошибки валидации", r.status_code == 400 and "field bad" in r.text.replace('field bad', 'field bad') or "bad" in r.text)
-n = con.execute("SELECT COUNT(*) c FROM applications").fetchone()["c"]
-check("плохая заявка НЕ сохранена", n == 1)
+check(
+    "ошибки валидации",
+    r.status_code == 400 and r.text.count('class="field bad"') >= 4,
+)
+count_after = con.execute("SELECT COUNT(*) c FROM applications").fetchone()["c"]
+check("плохая заявка НЕ сохранена", count_after == count_before)
 
 print("== Заявки в панели ==")
 r = s.get(BASE + PANEL + "/apps/")
 check("заявка в списке", "Мердан Худайгулиев" in r.text and "TV Repair" in r.text)
-r = s.get(BASE + PANEL + "/apps/1/")
+r = s.get(f"{BASE}{PANEL}/apps/{app_id}/")
 check("карточка заявки", "Мердан Худайгулиев" in r.text and "+993 63 12-34-56" in r.text)
-r = s.get(BASE + PANEL + "/apps/1/file/")
+r = s.get(f"{BASE}{PANEL}/apps/{app_id}/file/")
 check("скачивание файла", r.status_code == 200 and b"%PDF" in r.content)
 
 print("== Смена статуса ==")
-r = s.get(BASE + PANEL + "/apps/1/")
+r = s.get(f"{BASE}{PANEL}/apps/{app_id}/")
 tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
-r = s.post(BASE + PANEL + "/apps/1/", data={
+r = s.post(f"{BASE}{PANEL}/apps/{app_id}/", data={
     "csrf_token": tok, "action": "status", "status": "contacted"}, allow_redirects=True)
-row = con.execute("SELECT status FROM applications WHERE id=1").fetchone()
+row = con.execute("SELECT status FROM applications WHERE id=?", (app_id,)).fetchone()
 check("статус обновлён", row["status"] == "contacted")
 
 print("== Закрытие приёма ==")
