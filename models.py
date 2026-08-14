@@ -1,6 +1,7 @@
 """SQLite-модели и доступ к данным приложения."""
 
 import os
+import secrets
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
@@ -151,15 +152,24 @@ def seed_default_admin():
     password = os.environ.get("ADMIN_PASSWORD", "")
     if get_admin_by_login(login) is not None:
         return
-    if not password:
-        raise RuntimeError(
-            "ADMIN_PASSWORD обязателен при первом запуске. "
-            "Задайте надёжный пароль в переменных окружения."
-        )
-    if len(password) < 8:
+
+    generated = not password
+    if generated:
+        password = secrets.token_urlsafe(15)
+    elif len(password) < 8:
         raise RuntimeError("ADMIN_PASSWORD должен содержать минимум 8 символов.")
+
     try:
         create_admin(login, password)
     except sqlite3.IntegrityError:
         # Another Gunicorn worker may have created the same initial admin.
         db().rollback()
+        return
+
+    if generated:
+        print(
+            "[!] ADMIN_PASSWORD не задан. Создан администратор:\n"
+            f"    логин: {login}\n"
+            f"    пароль: {password}\n"
+            "    Сохраните пароль и смените его после входа в панель."
+        )
