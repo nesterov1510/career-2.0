@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Приём анкет закрыт</title>
+<title>{{ 'Ошибка отправки' if reason == 'error' else 'Приём анкет закрыт' }}</title>
 <meta name="robots" content="noindex">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -16,10 +16,17 @@
 </head>
 <body>
   <div class="wrap">
+    {% if reason == 'error' %}
+    <div class="ico">⚠️</div>
+    <h1>Не удалось отправить анкету</h1>
+    <p>{{ message }}</p>
+    <p style="margin-top:14px;font-size:14px"><a href="javascript:history.back()">Вернуться к форме</a></p>
+    {% else %}
     <div class="ico">🔒</div>
     <h1>Приём анкет закрыт</h1>
     <p>Эта вакансия больше не принимает заявки, либо ссылка неверна. Вернитесь на страницу вакансии и проверьте ссылку.</p>
     <p style="margin-top:14px;font-size:14px">Bu iş ornusy boýunça ýüz tutmalar kabul edilmeýär.</p>
+    {% endif %}
   </div>
 </body>
 </html>

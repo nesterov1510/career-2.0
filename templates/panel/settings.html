@@ -6,12 +6,12 @@
 
 <div class="card">
   <h2>🤖 Telegram: отправка анкет в группу</h2>
-  <form method="post">
+  <form method="post" id="telegram-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="what" value="telegram">
     <div class="field">
       <label>Токен бота (bot token)</label>
-      <input type="text" name="bot_token" value="{{ bot_token }}" class="mono" placeholder="123456789:AAF...">
+      <input type="password" name="bot_token" value="{{ bot_token }}" class="mono" placeholder="123456789:AAF..." autocomplete="off">
       <div class="hint">Создайте бота у <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> → команда <span class="mono">/newbot</span> → скопируйте токен.</div>
     </div>
     <div class="field">
@@ -21,6 +21,14 @@
         Добавьте бота <b>админом</b> в супер-группу. ID группы (начинается с <span class="mono">-100…</span>) можно узнать,
         добавив в группу бота <a href="https://t.me/getmyid" target="_blank" rel="noopener">@getmyid</a> или переслав сообщение группы боту
         <a href="https://t.me/username_to_id_bot" target="_blank" rel="noopener">@username_to_id_bot</a>.
+      </div>
+    </div>
+    <div class="field">
+      <label>ID темы / топика (необязательно)</label>
+      <input type="text" name="topic_id" value="{{ topic_id }}" class="mono" placeholder="Например: 12345" inputmode="numeric">
+      <div class="hint">
+        Заполняйте только для Telegram-группы с включёнными темами. Это значение <span class="mono">message_thread_id</span>.
+        Если поле пустое, сообщения отправляются в основную тему группы.
       </div>
     </div>
     <div class="row-actions">
@@ -62,21 +70,34 @@
 
 <script>
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
+const telegramForm = document.getElementById("telegram-form");
 const box = document.getElementById("tg-result");
 function show(ok, msg){
-  box.innerHTML = '<div class="flash ' + (ok ? "ok" : "err") + '" style="margin:0">' + msg + "</div>";
+  const result = document.createElement("div");
+  result.className = "flash " + (ok ? "ok" : "err");
+  result.style.margin = "0";
+  result.textContent = msg;
+  box.replaceChildren(result);
 }
-async function checkBot(){
-  box.innerHTML = '<div class="flash ok" style="margin:0">Проверяем…</div>';
-  const r = await fetch("{{ url_for('admin.settings_botinfo') }}", {method: "POST", headers: {"X-CSRFToken": csrf}});
-  const d = await r.json();
-  show(d.ok, d.ok ? d.msg : "Ошибка: " + d.error);
+async function callTelegram(url, pending){
+  show(true, pending);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {"X-CSRFToken": csrf},
+      body: new FormData(telegramForm)
+    });
+    const data = await response.json();
+    show(data.ok, data.ok ? data.msg : "Ошибка: " + (data.error || "неизвестная ошибка"));
+  } catch (_) {
+    show(false, "Ошибка сети. Попробуйте ещё раз.");
+  }
 }
-async function sendTest(){
-  box.innerHTML = '<div class="flash ok" style="margin:0">Отправляем…</div>';
-  const r = await fetch("{{ url_for('admin.settings_test') }}", {method: "POST", headers: {"X-CSRFToken": csrf}});
-  const d = await r.json();
-  show(d.ok, d.ok ? d.msg : "Ошибка: " + d.error);
+function checkBot(){
+  return callTelegram("{{ url_for('admin.settings_botinfo') }}", "Проверяем…");
+}
+function sendTest(){
+  return callTelegram("{{ url_for('admin.settings_test') }}", "Отправляем…");
 }
 </script>
 {% endblock %}

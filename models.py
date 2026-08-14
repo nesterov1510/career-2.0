@@ -1,11 +1,19 @@
-# -*- coding: utf-8 -*-
-"""SQLite-модели и доступ к данным."""
-import os
-import sqlite3
+"""SQLite-модели и доступ к данным приложения."""
 
+import os
+import secrets
+import sqlite3
+from datetime import datetime, timedelta, timezone
+
+from dotenv import load_dotenv
 from flask import g
+from werkzeug.security import generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Load the project's .env before any settings are read. Real process variables
+# take priority, so systemd/Docker configuration is never overwritten.
+load_dotenv(os.path.join(BASE_DIR, ".env"), override=False)
+
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data", "career.db"))
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", os.path.join(BASE_DIR, "uploads"))
 TZ = 5  # GMT+5, Ашхабад
@@ -13,10 +21,39 @@ TZ = 5  # GMT+5, Ашхабад
 ALLOWED_EXT = {"pdf", "doc", "docx", "jpg", "jpeg", "png"}
 ALLOWED_LABEL = {
     "none": "Без опыта",
-    "lt1": "Меньше 1 года",
+    "lt1": "Менее 1 года",
     "y1_3": "1–3 года",
     "y3_5": "3–5 лет",
+    "y5_10": "5–10 лет",
+    "gt10": "Более 10 лет",
+    # Старое значение оставлено для уже сохранённых заявок.
     "gt5": "Больше 5 лет",
+}
+
+AVAILABILITY_LABEL = {
+    "now": "Сразу",
+    "week": "Через неделю",
+    "two_weeks": "Через две недели",
+    "month": "Через месяц",
+    "two_three_months": "Через 2–3 месяца",
+}
+
+SKILL_LABELS = {
+    "led_lcd_tv": "LED / LCD TV",
+    "monitors": "Мониторы",
+    "smart_tv": "Smart TV",
+    "power_supply": "Ремонт БП (блок питания)",
+    "firmware": "Прошивка",
+    "smd": "SMD пайка",
+    "bga": "BGA пайка",
+    "board_diagnostics": "Диагностика плат",
+    "oscilloscope": "Осциллограф",
+    "multimeter": "Мультиметр",
+    "emmc_eeprom": "eMMC / EEPROM",
+    "schematics": "Чтение схем",
+    "backlight": "Замена подсветки",
+    "traces": "Восстановление дорожек",
+    "other": "Другое",
 }
 
 SCHEMA = """
@@ -40,11 +77,18 @@ CREATE TABLE IF NOT EXISTS applications (
     site_id       INTEGER REFERENCES sites(id) ON DELETE SET NULL,
     name          TEXT NOT NULL,
     phone         TEXT NOT NULL,
-    email         TEXT,
-    city          TEXT,
-    experience    TEXT,
-    message       TEXT,
-    file_name     TEXT,
+    email             TEXT,
+    city              TEXT,
+    birth_date        TEXT,
+    availability      TEXT,
+    experience        TEXT,
+    devices_experience TEXT,
+    previous_company  TEXT,
+    previous_position TEXT,
+    skills            TEXT,
+    salary            TEXT,
+    message           TEXT,
+    file_name         TEXT,
     file_storage  TEXT,
     file_size     INTEGER,
     status        TEXT DEFAULT 'new',
@@ -61,12 +105,23 @@ CREATE TABLE IF NOT EXISTS admins (
 CREATE INDEX IF NOT EXISTS idx_app_site ON applications(site_id);
 """
 
+APPLICATION_MIGRATIONS = {
+    "birth_date": "TEXT",
+    "availability": "TEXT",
+    "devices_experience": "TEXT",
+    "previous_company": "TEXT",
+    "previous_position": "TEXT",
+    "skills": "TEXT",
+    "salary": "TEXT",
+}
+
 
 def db():
     if "db" not in g:
-        g.db = sqlite3.connect(DB_PATH)
+        g.db = sqlite3.connect(DB_PATH, timeout=15)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
+        g.db.execute("PRAGMA busy_timeout = 15000")
     return g.db
 
 
@@ -77,12 +132,25 @@ def close_db(e=None):
 
 
 def init_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    db_parent = os.path.dirname(os.path.abspath(DB_PATH))
+    os.makedirs(db_parent, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    con = sqlite3.connect(DB_PATH)
-    con.executescript(SCHEMA)
-    con.commit()
-    con.close()
+    con = sqlite3.connect(DB_PATH, timeout=15)
+    try:
+        con.execute("PRAGMA journal_mode = WAL")
+        con.execute("PRAGMA foreign_keys = ON")
+        con.executescript(SCHEMA)
+        columns = {
+            row[1] for row in con.execute("PRAGMA table_info(applications)").fetchall()
+        }
+        for column, column_type in APPLICATION_MIGRATIONS.items():
+            if column not in columns:
+                con.execute(
+                    f"ALTER TABLE applications ADD COLUMN {column} {column_type}"
+                )
+        con.commit()
+    finally:
+        con.close()
 
 
 # ------------------------------------------------------------- settings ----
@@ -107,7 +175,7 @@ def get_site(key, by="token"):
         return None
     try:
         key = str(key)
-    except Exception:
+    except (TypeError, ValueError):
         return None
     if not key:
         return None
@@ -130,22 +198,37 @@ def get_admin_by_login(login):
 
 
 def create_admin(login, password):
-    from werkzeug.security import generate_password_hash
-    from datetime import datetime, timedelta, timezone
-
-    now = datetime.now(timezone(timedelta(hours=TZ))).isoformat()
+    created_at = datetime.now(timezone(timedelta(hours=TZ))).isoformat()
     db().execute(
         "INSERT INTO admins (login, password_hash, created_at) VALUES (?,?,?)",
-        (login, generate_password_hash(password), now),
+        (login, generate_password_hash(password), created_at),
     )
     db().commit()
 
 
 def seed_default_admin():
-    login = os.environ.get("ADMIN_LOGIN", "admin")
+    login = os.environ.get("ADMIN_LOGIN", "admin").strip() or "admin"
     password = os.environ.get("ADMIN_PASSWORD", "")
-    if get_admin_by_login(login) is None:
-        if not password:
-            password = "msb2026!"
-            print(f"[!] Создан админ по умолчанию: {login} / {password} — СМЕНИТЕ ЕГО В ПАНЕЛИ!")
+    if get_admin_by_login(login) is not None:
+        return
+
+    generated = not password
+    if generated:
+        password = secrets.token_urlsafe(15)
+    elif len(password) < 8:
+        raise RuntimeError("ADMIN_PASSWORD должен содержать минимум 8 символов.")
+
+    try:
         create_admin(login, password)
+    except sqlite3.IntegrityError:
+        # Another Gunicorn worker may have created the same initial admin.
+        db().rollback()
+        return
+
+    if generated:
+        print(
+            "[!] ADMIN_PASSWORD не задан. Создан администратор:\n"
+            f"    логин: {login}\n"
+            f"    пароль: {password}\n"
+            "    Сохраните пароль и смените его после входа в панель."
+        )

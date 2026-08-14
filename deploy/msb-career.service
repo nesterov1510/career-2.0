@@ -1,0 +1,26 @@
+[Unit]
+Description=MSB Career Flask application
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=windowrepair-ae
+WorkingDirectory=/home/windowrepair-ae/msb-career
+EnvironmentFile=-/home/windowrepair-ae/msb-career/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m gunicorn --worker-class gthread --workers 2 --threads 4 --bind 0.0.0.0:5040 --timeout 120 --graceful-timeout 30 --keep-alive 5 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile - wsgi:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillSignal=SIGQUIT
+TimeoutStopSec=30
+Restart=always
+RestartSec=5
+UMask=0027
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=full
+# Проект и записываемые data/uploads находятся в домашнем каталоге.
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target

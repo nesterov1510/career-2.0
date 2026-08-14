@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ 'Анкета отправлена' if lang=='ru' else 'Sowalnama iberildi' }}</title>
 <meta name="robots" content="noindex">
+{% if return_url %}<meta http-equiv="refresh" content="5;url={{ return_url }}">{% endif %}
 <style>
   :root{--bg:#f6f7f9;--ink:#101828;--muted:#667085;--acc:#2f6fed;--ok:#067647}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -15,6 +16,8 @@
   h1{font-size:26px;margin-bottom:12px}
   p{color:var(--muted);font-size:16px;line-height:1.65;margin-bottom:10px}
   .num{display:inline-block;background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:10px 18px;font-weight:700;font-size:15px;margin:14px 0;color:var(--acc)}
+  .return{margin-top:20px;padding:12px 16px;background:#eef3ff;border-radius:12px;font-size:14px!important}
+  .return a{color:var(--acc);font-weight:700;text-decoration:none}
   .foot{color:#98a2b3;font-size:12.5px;margin-top:34px}
 </style>
 </head>
@@ -32,7 +35,34 @@
     <p style="font-size:13.5px">
       {{ 'Сохраните номер заявки.' if lang=='ru' else 'Ýüz tutma belgisini saklaň.' }}
     </p>
+    {% if return_url %}
+    <p class="return">
+      <span id="return-text">
+        {{ 'Через 5 секунд вы вернётесь на сайт' if lang=='ru' else '5 sekuntdan soň saýta dolanarsyňyz' }}
+      </span>
+      <a href="{{ return_url }}">{{ return_site }}</a>.
+    </p>
+    {% endif %}
     <div class="foot">MSB Career · {{ current_year }}</div>
   </div>
+  {% if return_url %}
+  <script>
+    const destination = {{ return_url|tojson }};
+    const isRussian = {{ (lang == 'ru')|tojson }};
+    const text = document.getElementById("return-text");
+    let seconds = 5;
+    const timer = window.setInterval(() => {
+      seconds -= 1;
+      if (seconds <= 0) {
+        window.clearInterval(timer);
+        window.location.replace(destination);
+        return;
+      }
+      text.textContent = isRussian
+        ? `Через ${seconds} сек. вы вернётесь на сайт `
+        : `${seconds} sekuntdan soň saýta dolanarsyňyz `;
+    }, 1000);
+  </script>
+  {% endif %}
 </body>
 </html>
