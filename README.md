@@ -86,6 +86,8 @@ sudo systemctl enable --now msb-career
 
 Готовый файл находится в `deploy/msb-career.service`. Он запускает глобально
 установленный Gunicorn через `/usr/bin/python3` и слушает `0.0.0.0:5040`.
+Gunicorn использует потоковые `gthread` workers, чтобы медленное или оборванное
+подключение не блокировало целый worker с ошибкой `no URI read`.
 
 Сервис подготовлен для каталога `/home/windowrepair-ae/msb-career` и пользователя
 `windowrepair-ae`.
