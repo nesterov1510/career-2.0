@@ -154,6 +154,16 @@ ADMIN_PASSWORD=admin123 venv/bin/python wsgi.py   # или: python app.py
 # http://localhost:5000/x-panel-7f3a/login/ — панель (admin / admin123)
 ```
 
+Для запуска по локальному HTTP (`localhost` или `192.168.x.x`) укажите в `.env`:
+
+```env
+SESSION_COOKIE_SECURE=false
+```
+
+Значение `true` применяется только вместе с HTTPS. Иначе браузер не возвращает
+сессионную cookie и Flask-WTF отвечает ошибкой `The CSRF session token is missing`.
+После изменения `.env` обязательно перезапустите приложение.
+
 ## Структура проекта
 
 ```

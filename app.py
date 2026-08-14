@@ -26,7 +26,7 @@ from flask import (
     session,
     url_for,
 )
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -539,7 +539,14 @@ def auth_required(fn):
 
 @admin.app_context_processor
 def panel_globals():
-    return {"panel": PANEL, "logged": logged(), "active": request.endpoint}
+    return {
+        "panel": PANEL,
+        "logged": logged(),
+        "active": request.endpoint,
+        "secure_cookie_on_http": (
+            app.config["SESSION_COOKIE_SECURE"] and not request.is_secure
+        ),
+    }
 
 
 # ------------------------------------------------------------------ вход -----
@@ -849,6 +856,27 @@ def settings_botinfo():
 
 
 # ------------------------------------------------------------------ ошибки ---
+@app.errorhandler(CSRFError)
+def csrf_failure(error):
+    secure_on_http = app.config["SESSION_COOKIE_SECURE"] and not request.is_secure
+    if secure_on_http:
+        message = (
+            "Сессионная cookie не передаётся по HTTP. Установите "
+            "SESSION_COOKIE_SECURE=false в .env и перезапустите приложение."
+        )
+    else:
+        message = (
+            "Сессия формы отсутствует или истекла. Обновите страницу входа и "
+            "попробуйте снова. Если ошибка повторяется, разрешите cookie для сайта."
+        )
+    app.logger.warning("CSRF error on %s: %s", request.path, error.description)
+    return render_template(
+        "panel/login.html",
+        csrf_error=message,
+        secure_cookie_on_http=secure_on_http,
+    ), 400
+
+
 @app.errorhandler(404)
 def not_found(_error):
     return render_template("404.html"), 404

@@ -7,6 +7,16 @@
     <h1 style="margin-top:12px">Вход в панель</h1>
     <div class="sub" style="margin-bottom:0">MSB Career · управление анкетами</div>
   </div>
+  {% if secure_cookie_on_http %}
+  <div class="flash err">
+    Вход по HTTP невозможен, пока <span class="mono">SESSION_COOKIE_SECURE=true</span>.
+    Для локального адреса HTTP установите в <span class="mono">.env</span>
+    значение <span class="mono">SESSION_COOKIE_SECURE=false</span> и перезапустите приложение.
+  </div>
+  {% endif %}
+  {% if csrf_error %}
+  <div class="flash err">{{ csrf_error }}</div>
+  {% endif %}
   <div class="card">
     <form method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
