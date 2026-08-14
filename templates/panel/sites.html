@@ -1,0 +1,127 @@
+{% extends "panel/base.html" %}
+{% block title %}Сайты{% endblock %}
+{% block content %}
+<h1>Сайты-источники</h1>
+<div class="sub">Каждому сайту — своя ссылка на анкету. В Telegram будет видно, с какого сайта пришла заявка.</div>
+
+<div class="card">
+  <h2>➕ Добавить сайт</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div class="field">
+        <label>Название сайта *</label>
+        <input type="text" name="name" placeholder="TV Repair by Meryosab" required maxlength="140">
+      </div>
+      <div class="field">
+        <label>Адрес сайта (URL)</label>
+        <input type="url" name="url" placeholder="https://tvrepair.meryosab.com">
+      </div>
+      <div class="field">
+        <label>Вакансия по умолчанию</label>
+        <input type="text" name="vacancy" placeholder="Мастер по ремонту компьютеров" maxlength="200">
+      </div>
+    </div>
+    <button class="btn" type="submit">Добавить и создать ссылку</button>
+  </form>
+</div>
+
+{% for s in rows %}
+<div class="card">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="site_id" value="{{ s.id }}">
+    <input type="hidden" name="action" value="update">
+
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
+      <div>
+        <div style="font-size:16px;font-weight:800">{{ s.name }}
+          {% if not s.is_active %}<span class="pill gray">выключен</span>{% endif %}
+        </div>
+        <div class="muted" style="font-size:12.5px">создан {{ fmt_dt(s.created_at) }} · slug: <span class="mono">{{ s.slug }}</span></div>
+      </div>
+      <div class="row-actions">
+        <span class="pill {{ 'green' if not s.is_closed else 'red' }}">{{ 'приём открыт' if not s.is_closed else 'приём закрыт' }}</span>
+        <span class="pill gray">заявок: {{ s.apps }}{% if s.new_apps %} · новых: {{ s.new_apps }}{% endif %}</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Ссылка на анкету этого сайта</label>
+      <div class="row-actions">
+        <input type="text" readonly class="mono" id="link-{{ s.id }}" value="{{ url_for('apply_form', token_or_slug=s.token, _external=True) }}">
+        <button type="button" class="btn ghost sm" onclick="copyLink({{ s.id }}, this)">📋 Копировать</button>
+        <a class="btn ghost sm" href="{{ url_for('apply_form', token_or_slug=s.token) }}" target="_blank">Открыть ↗</a>
+      </div>
+      <div class="hint">Вставьте эту ссылку в кнопку «Заполнить анкету» на странице вакансии. Токен уникален и скрыт от посторонних.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div class="field">
+        <label>Название сайта</label>
+        <input type="text" name="name" value="{{ s.name }}" required maxlength="140">
+      </div>
+      <div class="field">
+        <label>Адрес сайта (URL)</label>
+        <input type="url" name="url" value="{{ s.url or '' }}">
+      </div>
+      <div class="field">
+        <label>Вакансия по умолчанию</label>
+        <input type="text" name="vacancy" value="{{ s.vacancy or '' }}" maxlength="200">
+      </div>
+    </div>
+
+    <div class="field">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600">
+        <input type="checkbox" name="is_closed" value="1" {{ 'checked' if s.is_closed }} style="width:auto">
+        Закрыть приём анкет (страница покажет «приём закрыт»)
+      </label>
+    </div>
+
+    <div class="row-actions">
+      <button class="btn" type="submit">💾 Сохранить</button>
+    </div>
+  </form>
+
+  <div class="row-actions" style="margin-top:12px">
+    <form method="post" onsubmit="return confirm('Сгенерировать новый токен? Старая ссылка перестанет работать.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="site_id" value="{{ s.id }}">
+      <input type="hidden" name="action" value="regen">
+      <button class="btn ghost" type="submit">🔄 Новый токен</button>
+    </form>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="site_id" value="{{ s.id }}">
+      <input type="hidden" name="action" value="toggle">
+      <button class="btn ghost" type="submit">{{ '🚫 Выключить' if s.is_active else '✅ Включить' }}</button>
+    </form>
+    <form method="post" onsubmit="return confirm('Удалить сайт и ВСЕ его заявки вместе с файлами? Это необратимо.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="site_id" value="{{ s.id }}">
+      <input type="hidden" name="action" value="delete">
+      <button class="btn red" type="submit">🗑 Удалить</button>
+    </form>
+  </div>
+</div>
+{% else %}
+<div class="card"><p class="muted">Сайтов пока нет — добавьте первый выше.</p></div>
+{% endfor %}
+
+<script>
+function copyLink(id, btn){
+  const inp = document.getElementById("link-" + id);
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = "✓ Скопировано";
+    setTimeout(() => btn.textContent = old, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(inp.value).then(done).catch(() => { inp.select(); document.execCommand("copy"); done(); });
+  } else {
+    inp.select(); document.execCommand("copy"); done();
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "panel/base.html" %}
+{% block title %}Заявка №{{ row.id }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('admin.apps') }}">← Ко всем заявкам</a></p>
+<h1 style="margin-top:8px">Заявка №{{ row.id }}</h1>
+<div class="sub">{{ fmt_dt(row.created_at) }} (GMT+5)</div>
+
+{% set sl = {'new':'Новая','contacted':'Связались','accepted':'Принят','rejected':'Отклонена'} %}
+
+<div class="card">
+  <h2>Кандидат</h2>
+  <table>
+    <tr><td class="muted" style="width:180px">ФИО</td><td><b style="font-size:16px">{{ row.name }}</b></td></tr>
+    <tr><td class="muted">Телефон</td><td><a href="tel:{{ row.phone }}" class="mono"><b>{{ phone_display(row.phone) }}</b></a>
+      &nbsp;<a href="https://wa.me/{{ row.phone.lstrip('+') }}" target="_blank" rel="noopener">WhatsApp ↗</a></td></tr>
+    {% if row.email %}<tr><td class="muted">E-mail</td><td><a href="mailto:{{ row.email }}">{{ row.email }}</a></td></tr>{% endif %}
+    {% if row.city %}<tr><td class="muted">Город / этрап</td><td>{{ row.city }}</td></tr>{% endif %}
+    <tr><td class="muted">Опыт работы</td><td>{{ ALLOWED_LABEL.get(row.experience, row.experience) }}</td></tr>
+  </table>
+
+  {% if row.message %}
+  <h2 style="margin-top:18px">О себе</h2>
+  <p style="white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:14px">{{ row.message }}</p>
+  {% endif %}
+
+  {% if row.file_name %}
+  <h2 style="margin-top:18px">Документ</h2>
+  <div class="row-actions">
+    <a class="btn ghost" href="{{ url_for('admin.app_file', aid=row.id) }}">📎 {{ row.file_name }} <span class="muted">({{ human_size(row.file_size) }})</span></a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Источник</h2>
+  <table>
+    <tr><td class="muted" style="width:180px">Сайт</td><td><b>{{ row.site_name or 'сайт удалён' }}</b></td></tr>
+    {% if row.site_url %}<tr><td class="muted">Адрес</td><td><a href="{{ row.site_url }}" target="_blank" rel="noopener">{{ row.site_url }} ↗</a></td></tr>{% endif %}
+    <tr><td class="muted">Отправка в Telegram</td>
+      <td>
+        {% if row.tg_ok %}<span class="pill green">доставлено ✓</span>
+        {% else %}<span class="pill red">ошибка</span>{% if row.tg_error %} <span class="muted">{{ row.tg_error }}</span>{% endif %}{% endif %}
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="row-actions" style="gap:16px;flex-wrap:wrap">
+    <form method="post" style="display:flex;gap:8px;align-items:center">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="status">
+      <label style="font-weight:600">Статус:</label>
+      <select name="status">
+        {% for k, v in sl.items() %}
+        <option value="{{ k }}" {{ 'selected' if row.status == k }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" type="submit">Сохранить</button>
+    </form>
+
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="resend">
+      <button class="btn ghost" type="submit">📨 Повторить в Telegram</button>
+    </form>
+
+    <form method="post" onsubmit="return confirm('Удалить заявку безвозвратно?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="delete">
+      <button class="btn red" type="submit">🗑 Удалить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "panel/base.html" %}
+{% block title %}Дашборд{% endblock %}
+{% block content %}
+<h1>Дашборд</h1>
+<div class="sub">Обзор анкет и сайтов</div>
+
+<div class="stats">
+  <div class="stat blue"><div class="v">{{ total }}</div><div class="l">Всего заявок</div></div>
+  <div class="stat green"><div class="v">{{ new }}</div><div class="l">Новых</div></div>
+  <div class="stat amber"><div class="v">{{ today_n }}</div><div class="l">За сегодня</div></div>
+  <div class="stat"><div class="v">{{ sites }}</div><div class="l">Сайтов</div></div>
+</div>
+
+<div class="card">
+  <h2>Последние заявки</h2>
+  {% if recent %}
+  <div class="tbl-scroll">
+  <table>
+    <tr><th>№</th><th>Дата</th><th>Сайт</th><th>ФИО</th><th>Телефон</th><th>Статус</th></tr>
+    {% for r in recent %}
+    <tr>
+      <td class="mono"><a href="{{ url_for('admin.app_detail', aid=r.id) }}">#{{ r.id }}</a></td>
+      <td class="muted">{{ fmt_dt(r.created_at) }}</td>
+      <td>{{ r.site_name or '—' }}</td>
+      <td><b>{{ r.name }}</b></td>
+      <td class="mono">{{ phone_display(r.phone) }}</td>
+      <td>
+        {% set sl = {'new':'Новая','contacted':'Связались','accepted':'Принят','rejected':'Отклонена'} %}
+        <span class="pill {{ r.status }}">{{ sl.get(r.status, r.status) }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <p style="margin-top:14px"><a href="{{ url_for('admin.apps') }}">Все заявки →</a></p>
+  {% else %}
+  <p class="muted">Пока нет ни одной заявки. Добавьте сайт во вкладке «Сайты» и откройте анкету по ссылке.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "panel/base.html" %}
+{% block title %}Вход{% endblock %}
+{% block content %}
+<div style="max-width:380px;margin:9vh auto 0">
+  <div style="text-align:center;margin-bottom:22px">
+    <div style="display:inline-grid;place-items:center;width:52px;height:52px;border-radius:14px;background:var(--acc);color:#fff;font-weight:800;font-size:22px">M</div>
+    <h1 style="margin-top:12px">Вход в панель</h1>
+    <div class="sub" style="margin-bottom:0">MSB Career · управление анкетами</div>
+  </div>
+  <div class="card">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label>Логин</label>
+        <input type="text" name="login" autofocus autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>Пароль</label>
+        <input type="password" name="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn" style="width:100%;justify-content:center" type="submit">Войти</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

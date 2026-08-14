@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="{{ 'ru' if lang == 'ru' else 'tk' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ site.vacancy or site.name }} — {{ 'Анкета' if lang == 'ru' else 'Sowalnama' }}</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{
+    --bg:#f6f7f9;--card:#ffffff;--ink:#101828;--muted:#667085;--line:#e4e7ec;
+    --acc:#2f6fed;--acc-d:#1f5cd6;--soft:#eef3ff;--err:#d92d20;--err-bg:#fef3f2;
+    --ok:#067647;--ok-bg:#ecfdf3;--r:16px;--shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  a{color:var(--acc);text-decoration:none}
+  .page{max-width:720px;margin:0 auto;padding:26px 18px 60px}
+
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px;letter-spacing:.2px}
+  .brand .dot{width:30px;height:30px;border-radius:9px;background:var(--acc);color:#fff;display:grid;place-items:center;font-size:14px}
+  .lang-switch{display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .lang-switch a{padding:6px 13px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted)}
+  .lang-switch a.on{background:var(--acc);color:#fff}
+
+  .hero{background:linear-gradient(135deg,#2f6fed 0%,#1f5cd6 60%,#174ab0 100%);border-radius:var(--r);padding:30px 26px;color:#fff;box-shadow:var(--shadow)}
+  .hero .tag{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:600;margin-bottom:14px}
+  .hero h1{font-size:clamp(22px,3.4vw,30px);line-height:1.2;margin-bottom:8px}
+  .hero .src{opacity:.85;font-size:14px}
+  .hero .src a{color:#fff;text-decoration:underline;text-underline-offset:2px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:26px;margin-top:18px}
+  .card h2{font-size:18px;margin-bottom:4px}
+  .card .sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+
+  .grid{display:grid;gap:16px}
+  @media(min-width:600px){.grid.two{grid-template-columns:1fr 1fr}}
+  .field label{display:block;font-weight:600;font-size:14px;margin-bottom:7px}
+  .req{color:var(--err)}
+  input[type=text],input[type=email],input[type=tel],select,textarea{
+    width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:15px;background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(47,111,237,.15)}
+  textarea{resize:vertical;min-height:96px}
+  .phone{display:flex;gap:8px}
+  .phone select{width:118px;flex:none}
+  .ferr{display:none;color:var(--err);font-size:13px;margin-top:6px}
+  .field.bad input,.field.bad select,.field.bad textarea,.field.bad .drop{border-color:var(--err)!important}
+  .field.bad .ferr{display:block}
+  .hint{color:var(--muted);font-size:12.5px;margin-top:6px}
+
+  .drop{border:1.5px dashed #c6cdd8;border-radius:12px;padding:18px;text-align:center;color:var(--muted);font-size:14px;cursor:pointer;transition:.15s;background:#fafbfc}
+  .drop:hover,.drop.over{border-color:var(--acc);background:var(--soft)}
+  .drop .ico{font-size:22px;display:block;margin-bottom:6px}
+  .file-chip{display:none;align-items:center;gap:10px;background:var(--soft);border:1px solid #d7e3ff;border-radius:12px;padding:10px 14px;font-size:14px}
+  .file-chip .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:#174ab0}
+  .file-chip button{border:none;background:none;color:var(--err);font-size:16px;cursor:pointer}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;cursor:pointer;background:var(--acc);color:#fff;font:inherit;font-size:16px;font-weight:700;padding:15px 22px;border-radius:13px;transition:.15s;margin-top:22px}
+  .btn:hover{background:var(--acc-d)}
+  .btn:disabled{opacity:.6;cursor:wait}
+  .btn .spin{display:none;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite}
+  .btn.loading .spin{display:block}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .alert{border-radius:13px;padding:13px 16px;font-size:14px;margin-bottom:16px;display:none}
+  .alert.err{display:block;background:var(--err-bg);color:var(--err);border:1px solid #fecdca}
+  .foot{text-align:center;color:var(--muted);font-size:12.5px;margin-top:26px}
+  .hp{position:absolute;left:-9999px;top:auto;opacity:0;height:0;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <div class="brand"><span class="dot">M</span> MSB&nbsp;Career</div>
+    <div class="lang-switch">
+      <a href="?lang=ru" class="{{ 'on' if lang=='ru' }}">RU</a>
+      <a href="?lang=tm" class="{{ 'on' if lang=='tm' }}">TM</a>
+    </div>
+  </div>
+
+  <div class="hero">
+    {% if site.vacancy %}<span class="tag" data-i18n="vacancy_tag"></span>{% endif %}
+    <h1>{{ site.vacancy or (site.name if lang=='ru' else site.name) }}</h1>
+    <div class="src">
+      <span data-i18n="source"></span>
+      <a href="{{ site.url or '#' }}" target="_blank" rel="noopener">{{ site.name }}</a>
+    </div>
+  </div>
+
+  <form class="card" id="form" method="post" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="form_token" value="{{ form_token }}">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <div class="hp" aria-hidden="true"><label>Leave this field empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+    <h2 data-i18n="title"></h2>
+    <p class="sub" data-i18n="subtitle"></p>
+
+    <div class="alert {{ 'err' if error }}" id="server-error">
+      {% if error %}{{ error }}{% endif %}
+    </div>
+
+    <div class="grid">
+      <div class="field {{ 'bad' if errors and errors.name }}" data-f="name">
+        <label for="name"><span data-i18n="name"></span> <span class="req">*</span></label>
+        <input type="text" id="name" name="name" autocomplete="name" maxlength="120"
+               placeholder="{{ form.name if form else '' }}" value="{{ form.name if form else '' }}"
+               data-ph="name_ph">
+        <div class="ferr" data-i18n="name_e"></div>
+      </div>
+
+      <div class="grid two">
+        <div class="field {{ 'bad' if errors and errors.phone }}" data-f="phone">
+          <label for="phone"><span data-i18n="phone"></span> <span class="req">*</span></label>
+          <div class="phone">
+            <select name="prefix" id="prefix">
+              <option value="+993" {{ 'selected' if not form or form.prefix=='+993' }}>🇹🇲 +993</option>
+              <option value="+7"   {{ 'selected' if form and form.prefix=='+7' }}>🇷🇺 +7</option>
+              <option value="+998" {{ 'selected' if form and form.prefix=='+998' }}>🇺🇿 +998</option>
+            </select>
+            <input type="tel" id="phone" name="phone" inputmode="numeric" autocomplete="tel"
+                   placeholder="63 123456" value="{{ form.phone if form else '' }}" maxlength="14">
+          </div>
+          <div class="ferr" data-i18n="phone_e"></div>
+        </div>
+
+        <div class="field {{ 'bad' if errors and errors.email }}" data-f="email">
+          <label for="email"><span data-i18n="email"></span></label>
+          <input type="email" id="email" name="email" autocomplete="email" maxlength="120"
+                 value="{{ form.email if form else '' }}" data-ph="email_ph">
+          <div class="ferr" data-i18n="email_e"></div>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="field {{ 'bad' if errors and errors.experience }}" data-f="experience">
+          <label for="experience"><span data-i18n="experience"></span> <span class="req">*</span></label>
+          <select id="experience" name="experience">
+            <option value="" data-i18n-opt="exp_sel"></option>
+            <option value="none" {{ 'selected' if form and form.experience=='none' }} data-i18n-opt="exp0"></option>
+            <option value="lt1"  {{ 'selected' if form and form.experience=='lt1' }} data-i18n-opt="exp1"></option>
+            <option value="y1_3" {{ 'selected' if form and form.experience=='y1_3' }} data-i18n-opt="exp2"></option>
+            <option value="y3_5" {{ 'selected' if form and form.experience=='y3_5' }} data-i18n-opt="exp3"></option>
+            <option value="gt5"  {{ 'selected' if form and form.experience=='gt5' }} data-i18n-opt="exp4"></option>
+          </select>
+          <div class="ferr" data-i18n="experience_e"></div>
+        </div>
+
+        <div class="field" data-f="city">
+          <label for="city" data-i18n="city"></label>
+          <input type="text" id="city" name="city" maxlength="80"
+                 value="{{ form.city if form else '' }}" data-ph="city_ph">
+        </div>
+      </div>
+
+      <div class="field {{ 'bad' if errors and errors.message }}" data-f="message">
+        <label for="message" data-i18n="message"></label>
+        <textarea id="message" name="message" maxlength="2000" data-ph="message_ph">{{ form.message if form else '' }}</textarea>
+        <div class="ferr" data-i18n="message_e"></div>
+      </div>
+
+      <div class="field {{ 'bad' if errors and errors.file }}" data-f="file">
+        <label data-i18n="file"></label>
+        <div class="drop" id="drop">
+          <span class="ico">📎</span>
+          <span data-i18n="file_drop"></span>
+          <div class="hint" data-i18n="file_hint"></div>
+        </div>
+        <div class="file-chip" id="chip">
+          <span>📄</span><span class="nm" id="chip-name"></span>
+          <button type="button" id="chip-x" title="Убрать">✕</button>
+        </div>
+        <input type="file" id="file" name="file" hidden
+               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+        <div class="ferr" data-i18n="file_e"></div>
+      </div>
+    </div>
+
+    <button class="btn" id="send" type="submit">
+      <span class="spin"></span><span data-i18n="send"></span>
+    </button>
+  </form>
+
+  <div class="foot">MSB Career · {{ site.name }} · {{ current_year }}</div>
+</div>
+
+<script>
+const T = {
+  ru: {
+    vacancy_tag: "Открытая вакансия",
+    source: "Вакансия с сайта",
+    title: "Анкета кандидата",
+    subtitle: "Заполните форму — заявка сразу уйдёт работодателю. Поля со звёздочкой * обязательны.",
+    name: "ФИО", name_ph: "Например: Мердан Худайгулиев", name_e: "Укажите имя и фамилию",
+    phone: "Номер телефона", phone_e: "Укажите номер телефона",
+    email: "E-mail (не обязательно)", email_ph: "example@mail.com", email_e: "Неверный e-mail",
+    experience: "Опыт работы", experience_e: "Выберите опыт работы",
+    exp_sel: "Выберите вариант", exp0: "Без опыта", exp1: "Меньше 1 года", exp2: "1–3 года", exp3: "3–5 лет", exp4: "Больше 5 лет",
+    city: "Город / этрап", city_ph: "Ашхабад",
+    message: "О себе", message_ph: "Кратко расскажите о себе: чем занимались, что умеете…", message_e: "Слишком длинный текст (макс. 2000)",
+    file: "Резюме или документы", file_drop: "Нажмите или перетащите файл сюда", file_hint: "PDF, DOC(X), JPG или PNG · до 5 МБ",
+    file_e: "Неподходящий файл",
+    send: "Отправить анкету",
+    err_generic: "Проверьте выделенные поля"
+  },
+  tm: {
+    vacancy_tag: "Açyk iş ornusy",
+    source: "Iş ornunyň çeşmesi:",
+    title: "Dalaşgäriň sowalnamasy",
+    subtitle: "Formany dolduryň — ýüz tutma gönüden-göni iş berijä iberiler. * bilen bellenen meýdançalar hökmanydyr.",
+    name: "Adyňyz we familiýaňyz", name_ph: "Mysal üçin: Merdan Hudaýguluyew", name_e: "Adyňyzy we familiýaňyzy ýazyň",
+    phone: "Telefon belgiňiz", phone_e: "Telefon belgiňizi ýazyň",
+    email: "E-mail (hökmany däl)", email_ph: "example@mail.com", email_e: "E-nädogry ýazylan",
+    experience: "Iş tejribäňiz", experience_e: "Iş tejribäňizi saýlaň",
+    exp_sel: "Warianty saýlaň", exp0: "Tejribesiz", exp1: "1 ýyldan az", exp2: "1–3 ýyl", exp3: "3–5 ýyl", exp4: "5 ýyldan köp",
+    city: "Şäher / etrap", city_ph: "Aşgabat",
+    message: "Özüňiz barada", message_ph: "Gysgaça özüňiz barada ýazyň: näme işledim, näme başarýaryn…", message_e: "Tekst gaty uzyn (iň köp 2000)",
+    file: "Rezume ýa-da resminamalar", file_drop: "Şu ýere basyň ýa-da faýly süýräň", file_hint: "PDF, DOC(X), JPG ýa-da PNG · 5 MB çenli",
+    file_e: "Uýgunsyz faýl",
+    send: "Sowalnamany iber",
+    err_generic: "Bellenen meýdançalary barlaň"
+  }
+};
+let lang = "{{ lang }}";
+function applyLang(l){
+  lang = l;
+  const t = T[l];
+  document.documentElement.lang = (l === "ru") ? "ru" : "tk";
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.dataset.i18n;
+    if (t[k] !== undefined) el.textContent = t[k];
+  });
+  document.querySelectorAll("[data-i18n-opt]").forEach(el => {
+    const k = el.dataset.i18nOpt;
+    if (t[k] !== undefined) el.textContent = t[k];
+  });
+  document.querySelectorAll("[data-ph]").forEach(el => {
+    const k = el.dataset.ph;
+    if (t[k] !== undefined) el.setAttribute("placeholder", t[k]);
+  });
+}
+applyLang(lang);
+
+// ------- файл -------
+const drop = document.getElementById("drop");
+const fileInput = document.getElementById("file");
+const chip = document.getElementById("chip");
+const chipName = document.getElementById("chip-name");
+const OK = ["pdf","doc","docx","jpg","jpeg","png"];
+
+function showFile(f){
+  if (!f){ chip.style.display = "none"; drop.style.display = ""; return; }
+  chipName.textContent = f.name + " · " + (f.size > 1048576 ? (f.size/1048576).toFixed(1) + " МБ" : Math.ceil(f.size/1024) + " КБ");
+  chip.style.display = "flex";
+  drop.style.display = "none";
+}
+drop.addEventListener("click", () => fileInput.click());
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", e => {
+  e.preventDefault(); drop.classList.remove("over");
+  if (e.dataTransfer.files.length){ fileInput.files = e.dataTransfer.files; showFile(e.dataTransfer.files[0]); }
+});
+fileInput.addEventListener("change", () => showFile(fileInput.files[0]));
+document.getElementById("chip-x").addEventListener("click", () => { fileInput.value = ""; showFile(null); });
+
+// ------- отправка -------
+const form = document.getElementById("form");
+const btn = document.getElementById("send");
+const serverErr = document.getElementById("server-error");
+if (serverErr.textContent.trim()) serverErr.classList.add("err");
+
+form.addEventListener("submit", e => {
+  const t = T[lang];
+  let ok = true;
+  const setBad = (f, bad) => {
+    form.querySelector('[data-f="' + f + '"]').classList.toggle("bad", bad);
+  };
+  const name = form.name.value.trim();
+  setBad("name", name.length < 2); if (name.length < 2) ok = false;
+
+  const digits = form.phone.value.replace(/\D/g, "");
+  setBad("phone", digits.length < 5); if (digits.length < 5) ok = false;
+
+  const email = form.email.value.trim();
+  const badEmail = !!email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+  setBad("email", badEmail); if (badEmail) ok = false;
+
+  setBad("experience", !form.experience.value); if (!form.experience.value) ok = false;
+
+  const f = fileInput.files[0];
+  let badFile = false;
+  if (f){
+    const ext = (f.name.split(".").pop() || "").toLowerCase();
+    if (!OK.includes(ext) || f.size > 5 * 1048576) badFile = true;
+  }
+  setBad("file", badFile); if (badFile) ok = false;
+
+  if (!ok){
+    e.preventDefault();
+    serverErr.textContent = t.err_generic;
+    serverErr.classList.add("err");
+    const first = form.querySelector(".field.bad");
+    if (first) first.scrollIntoView({behavior: "smooth", block: "center"});
+    return;
+  }
+  serverErr.classList.remove("err");
+  btn.disabled = true;
+  btn.classList.add("loading");
+});
+</script>
+</body>
+</html>

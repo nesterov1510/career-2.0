@@ -1,0 +1,82 @@
+{% extends "panel/base.html" %}
+{% block title %}Настройки{% endblock %}
+{% block content %}
+<h1>Настройки</h1>
+<div class="sub">Подключение Telegram и безопасность</div>
+
+<div class="card">
+  <h2>🤖 Telegram: отправка анкет в группу</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="what" value="telegram">
+    <div class="field">
+      <label>Токен бота (bot token)</label>
+      <input type="text" name="bot_token" value="{{ bot_token }}" class="mono" placeholder="123456789:AAF...">
+      <div class="hint">Создайте бота у <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> → команда <span class="mono">/newbot</span> → скопируйте токен.</div>
+    </div>
+    <div class="field">
+      <label>Chat ID супер-группы</label>
+      <input type="text" name="chat_id" value="{{ chat_id }}" class="mono" placeholder="-1001234567890">
+      <div class="hint">
+        Добавьте бота <b>админом</b> в супер-группу. ID группы (начинается с <span class="mono">-100…</span>) можно узнать,
+        добавив в группу бота <a href="https://t.me/getmyid" target="_blank" rel="noopener">@getmyid</a> или переслав сообщение группы боту
+        <a href="https://t.me/username_to_id_bot" target="_blank" rel="noopener">@username_to_id_bot</a>.
+      </div>
+    </div>
+    <div class="row-actions">
+      <button class="btn" type="submit">💾 Сохранить</button>
+      <button class="btn ghost" type="button" onclick="checkBot()">🔎 Проверить бота</button>
+      <button class="btn ghost" type="button" onclick="sendTest()">✉️ Тестовое сообщение в группу</button>
+    </div>
+  </form>
+  <div id="tg-result" style="margin-top:12px"></div>
+</div>
+
+<div class="card">
+  <h2>🔑 Смена пароля ({{ admin_login }})</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="what" value="password">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div class="field">
+        <label>Текущий пароль</label>
+        <input type="password" name="current" autocomplete="current-password" required>
+      </div>
+      <div class="field">
+        <label>Новый пароль (мин. 8 символов)</label>
+        <input type="password" name="new" autocomplete="new-password" required minlength="8">
+      </div>
+    </div>
+    <button class="btn" type="submit">Сменить пароль</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>ℹ️ Как подключить кнопку на сайте вакансии</h2>
+  <ol style="margin-left:18px;line-height:1.9;color:var(--ink)">
+    <li>Во вкладке <a href="{{ url_for('admin.sites') }}">«Сайты»</a> добавьте сайт и скопируйте его ссылку на анкету.</li>
+    <li>На странице вакансии замените ссылку кнопки <span class="mono">https://msb-career.meryosab.com/</span> на скопированную (например, <span class="mono">https://msb-career.meryosab.com/apply/&lt;токен&gt;/</span>).</li>
+    <li>Заполните токен бота и Chat ID группы выше — и анкеты начнут приходить в Telegram с пометкой сайта.</li>
+  </ol>
+</div>
+
+<script>
+const csrf = document.querySelector('meta[name="csrf-token"]').content;
+const box = document.getElementById("tg-result");
+function show(ok, msg){
+  box.innerHTML = '<div class="flash ' + (ok ? "ok" : "err") + '" style="margin:0">' + msg + "</div>";
+}
+async function checkBot(){
+  box.innerHTML = '<div class="flash ok" style="margin:0">Проверяем…</div>';
+  const r = await fetch("{{ url_for('admin.settings_botinfo') }}", {method: "POST", headers: {"X-CSRFToken": csrf}});
+  const d = await r.json();
+  show(d.ok, d.ok ? d.msg : "Ошибка: " + d.error);
+}
+async function sendTest(){
+  box.innerHTML = '<div class="flash ok" style="margin:0">Отправляем…</div>';
+  const r = await fetch("{{ url_for('admin.settings_test') }}", {method: "POST", headers: {"X-CSRFToken": csrf}});
+  const d = await r.json();
+  show(d.ok, d.ok ? d.msg : "Ошибка: " + d.error);
+}
+</script>
+{% endblock %}

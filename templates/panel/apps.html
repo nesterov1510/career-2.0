@@ -1,0 +1,70 @@
+{% extends "panel/base.html" %}
+{% block title %}Заявки{% endblock %}
+{% block content %}
+<h1>Заявки</h1>
+<div class="sub">Все анкеты, пришедшие со всех сайтов</div>
+
+<div class="card">
+  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+    <div class="field" style="flex:1;min-width:160px;margin:0">
+      <label>Поиск (имя, телефон, e-mail, город)</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Например: 63123456">
+    </div>
+    <div class="field" style="margin:0">
+      <label>Сайт</label>
+      <select name="site">
+        <option value="">Все сайты</option>
+        {% for s in sites %}
+        <option value="{{ s.id }}" {{ 'selected' if q_site == s.id|string }}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <label>Статус</label>
+      <select name="status">
+        <option value="">Любой</option>
+        <option value="new" {{ 'selected' if q_status == 'new' }}>Новые</option>
+        <option value="contacted" {{ 'selected' if q_status == 'contacted' }}>Связались</option>
+        <option value="accepted" {{ 'selected' if q_status == 'accepted' }}>Принят</option>
+        <option value="rejected" {{ 'selected' if q_status == 'rejected' }}>Отклонена</option>
+      </select>
+    </div>
+    <button class="btn" type="submit">Фильтр</button>
+    {% if q or q_site or q_status %}<a class="btn ghost" href="{{ url_for('admin.apps') }}">Сбросить</a>{% endif %}
+  </form>
+</div>
+
+<div class="card">
+  {% if rows %}
+  <div class="tbl-scroll">
+  <table>
+    <tr>
+      <th>№</th><th>Дата</th><th>Сайт</th><th>ФИО</th><th>Телефон</th>
+      <th>Опыт</th><th>Файл</th><th>TG</th><th>Статус</th>
+    </tr>
+    {% for r in rows %}
+    <tr>
+      <td class="mono"><a href="{{ url_for('admin.app_detail', aid=r.id) }}"><b>#{{ r.id }}</b></a></td>
+      <td class="muted" style="white-space:nowrap">{{ fmt_dt(r.created_at) }}</td>
+      <td>{{ r.site_name or '—' }}</td>
+      <td><b>{{ r.name }}</b>{% if r.city %}<div class="muted" style="font-size:12px">{{ r.city }}</div>{% endif %}</td>
+      <td class="mono" style="white-space:nowrap">{{ phone_display(r.phone) }}</td>
+      <td>{{ ALLOWED_LABEL.get(r.experience, r.experience) }}</td>
+      <td>{% if r.file_name %}📎{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td>
+        {% if r.tg_ok %}<span class="pill green">✓</span>
+        {% else %}<span class="pill red" title="{{ r.tg_error or '' }}">✗</span>{% endif %}
+      </td>
+      <td>
+        {% set sl = {'new':'Новая','contacted':'Связались','accepted':'Принят','rejected':'Отклонена'} %}
+        <span class="pill {{ r.status }}">{{ sl.get(r.status, r.status) }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">Ничего не найдено.</p>
+  {% endif %}
+</div>
+{% endblock %}

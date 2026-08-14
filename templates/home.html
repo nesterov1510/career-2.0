@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSB Career — анкеты на вакансии</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#101828;--muted:#667085;--line:#e4e7ec;--acc:#2f6fed;--r:18px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+  .wrap{max-width:680px;margin:0 auto;padding:56px 20px;flex:1}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.3px}
+  .logo .dot{width:34px;height:34px;border-radius:10px;background:var(--acc);display:grid;place-items:center;color:#fff;font-size:16px}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:34px 0 14px}
+  p{color:var(--muted);line-height:1.65;font-size:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px;margin-top:28px}
+  .steps{display:grid;gap:14px;margin-top:6px}
+  .step{display:flex;gap:12px;align-items:flex-start}
+  .step b{min-width:26px;height:26px;border-radius:8px;background:#eef3ff;color:var(--acc);display:grid;place-items:center;font-size:13px}
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:22px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo"><span class="dot">M</span> MSB&nbsp;Career</div>
+    <h1>Анкеты для кандидатов</h1>
+    <p>Этот сервис принимает анкеты на вакансии наших партнёров и передаёт их работодателю. Если вы пришли со страницы вакансии — откройте анкету по ссылке с той страницы.</p>
+    <div class="card">
+      <div class="steps">
+        <div class="step"><b>1</b><span>Перейдите по ссылке анкеты со страницы вакансии.</span></div>
+        <div class="step"><b>2</b><span>Заполните форму и при необходимости прикрепите резюме.</span></div>
+        <div class="step"><b>3</b><span>Заявка сразу попадает к работодателю — с вами свяжутся.</span></div>
+      </div>
+    </div>
+  </div>
+  <footer>© {{ current_year }} MSB Career · Сервис анкет для сайтов вакансий</footer>
+</body>
+</html>
