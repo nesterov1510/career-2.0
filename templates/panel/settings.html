@@ -6,7 +6,7 @@
 
 <div class="card">
   <h2>🤖 Telegram: отправка анкет в группу</h2>
-  <form method="post">
+  <form method="post" id="telegram-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="what" value="telegram">
     <div class="field">
@@ -21,6 +21,14 @@
         Добавьте бота <b>админом</b> в супер-группу. ID группы (начинается с <span class="mono">-100…</span>) можно узнать,
         добавив в группу бота <a href="https://t.me/getmyid" target="_blank" rel="noopener">@getmyid</a> или переслав сообщение группы боту
         <a href="https://t.me/username_to_id_bot" target="_blank" rel="noopener">@username_to_id_bot</a>.
+      </div>
+    </div>
+    <div class="field">
+      <label>ID темы / топика (необязательно)</label>
+      <input type="text" name="topic_id" value="{{ topic_id }}" class="mono" placeholder="Например: 12345" inputmode="numeric">
+      <div class="hint">
+        Заполняйте только для Telegram-группы с включёнными темами. Это значение <span class="mono">message_thread_id</span>.
+        Если поле пустое, сообщения отправляются в основную тему группы.
       </div>
     </div>
     <div class="row-actions">
@@ -62,6 +70,7 @@
 
 <script>
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
+const telegramForm = document.getElementById("telegram-form");
 const box = document.getElementById("tg-result");
 function show(ok, msg){
   const result = document.createElement("div");
@@ -73,7 +82,11 @@ function show(ok, msg){
 async function callTelegram(url, pending){
   show(true, pending);
   try {
-    const response = await fetch(url, {method: "POST", headers: {"X-CSRFToken": csrf}});
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {"X-CSRFToken": csrf},
+      body: new FormData(telegramForm)
+    });
     const data = await response.json();
     show(data.ok, data.ok ? data.msg : "Ошибка: " + (data.error || "неизвестная ошибка"));
   } catch (_) {

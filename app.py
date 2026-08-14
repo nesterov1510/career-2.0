@@ -223,8 +223,8 @@ def human_size(n):
     return f"{n} Б"
 
 
-def tg_call(method, files=None, **data):
-    token = (get_setting("bot_token") or "").strip()
+def tg_call(method, files=None, bot_token=None, **data):
+    token = ((bot_token if bot_token is not None else get_setting("bot_token")) or "").strip()
     if not token:
         return {"ok": False, "error": "Bot token не задан в настройках панели"}
     try:
@@ -256,6 +256,10 @@ def send_application(app_id):
     chat_id = (get_setting("chat_id") or "").strip()
     if not chat_id:
         return False, "chat_id группы не задан в настройках панели"
+    topic_id = (get_setting("topic_id") or "").strip()
+    destination = {"chat_id": chat_id}
+    if topic_id:
+        destination["message_thread_id"] = topic_id
 
     about = (row["message"] or "").strip()
     if len(about) > 3000:
@@ -308,7 +312,7 @@ def send_application(app_id):
         with open(fpath, "rb") as uploaded:
             res = tg_call(
                 "sendDocument",
-                chat_id=chat_id,
+                **destination,
                 caption=document_caption,
                 parse_mode="HTML",
                 files={"document": (row["file_name"] or "document", uploaded)},
@@ -321,7 +325,7 @@ def send_application(app_id):
 
     res = tg_call(
         "sendMessage",
-        chat_id=chat_id,
+        **destination,
         text=caption,
         parse_mode="HTML",
         disable_web_page_preview=True,
@@ -748,6 +752,16 @@ def app_file(aid):
 
 
 # -------------------------------------------------------------- настройки ---
+def validate_telegram_settings(token, chat, topic=""):
+    if token and not re.fullmatch(r"\d{5,16}:[A-Za-z0-9_-]{20,}", token):
+        return "Неверный формат токена Telegram-бота. Скопируйте токен целиком из BotFather."
+    if chat and not re.fullmatch(r"-?\d{1,20}", chat):
+        return "Chat ID должен содержать только цифры и необязательный минус."
+    if topic and not re.fullmatch(r"\d{1,20}", topic):
+        return "ID темы должен быть положительным целым числом."
+    return None
+
+
 @admin.route("/settings/", methods=["GET", "POST"])
 @auth_required
 def settings():
@@ -756,15 +770,14 @@ def settings():
         if what == "telegram":
             token = request.form.get("bot_token", "").strip()
             chat = request.form.get("chat_id", "").strip()
-            token_valid = not token or re.fullmatch(r"\d{5,15}:[A-Za-z0-9_-]{20,}", token)
-            chat_valid = not chat or re.fullmatch(r"-?\d{1,20}", chat)
-            if not token_valid:
-                flash("Неверный формат токена Telegram-бота.", "err")
-            elif not chat_valid:
-                flash("Chat ID должен содержать только цифры и необязательный минус.", "err")
+            topic = request.form.get("topic_id", "").strip()
+            validation_error = validate_telegram_settings(token, chat, topic)
+            if validation_error:
+                flash(validation_error, "err")
             else:
                 set_setting("bot_token", token)
                 set_setting("chat_id", chat)
+                set_setting("topic_id", topic)
                 flash("Настройки Telegram сохранены.", "ok")
         elif what == "password":
             a = db().execute("SELECT * FROM admins WHERE id=?",
@@ -785,6 +798,7 @@ def settings():
         "panel/settings.html",
         bot_token=get_setting("bot_token") or "",
         chat_id=get_setting("chat_id") or "",
+        topic_id=get_setting("topic_id") or "",
         admin_login=session.get("admin_login", "admin"),
     )
 
@@ -792,14 +806,28 @@ def settings():
 @admin.route("/settings/test/", methods=["POST"])
 @auth_required
 def settings_test():
-    chat_id = (get_setting("chat_id") or "").strip()
+    token = request.form.get("bot_token", "").strip()
+    chat_id = request.form.get("chat_id", "").strip()
+    topic_id = request.form.get("topic_id", "").strip()
+    validation_error = validate_telegram_settings(token, chat_id, topic_id)
+    if validation_error:
+        return jsonify(ok=False, error=validation_error)
+    if not token:
+        return jsonify(ok=False, error="Сначала укажите токен бота.")
     if not chat_id:
-        return jsonify(ok=False, error="Сначала укажите chat_id группы.")
-    res = tg_call("sendMessage", chat_id=chat_id,
-                  text="✅ Тестовое сообщение: анкеты MSB Career подключены.",
-                  disable_web_page_preview=True)
+        return jsonify(ok=False, error="Сначала укажите Chat ID группы.")
+    destination = {"chat_id": chat_id}
+    if topic_id:
+        destination["message_thread_id"] = topic_id
+    res = tg_call(
+        "sendMessage",
+        bot_token=token,
+        **destination,
+        text="✅ Тестовое сообщение: анкеты MSB Career подключены.",
+        disable_web_page_preview=True,
+    )
     if res.get("ok"):
-        return jsonify(ok=True, msg="Сообщение отправлено в группу ✓")
+        return jsonify(ok=True, msg="Сообщение отправлено в группу или выбранную тему ✓")
     desc = res.get("description") or res.get("error") or "ошибка"
     return jsonify(ok=False, error=desc)
 
@@ -807,7 +835,13 @@ def settings_test():
 @admin.route("/settings/botinfo/", methods=["POST"])
 @auth_required
 def settings_botinfo():
-    res = tg_call("getMe")
+    token = request.form.get("bot_token", "").strip()
+    validation_error = validate_telegram_settings(token, "")
+    if validation_error:
+        return jsonify(ok=False, error=validation_error)
+    if not token:
+        return jsonify(ok=False, error="Сначала укажите токен бота.")
+    res = tg_call("getMe", bot_token=token)
     if res.get("ok"):
         me = res["result"]
         return jsonify(ok=True, msg=f"Бот найден: @{me.get('username')} ({me.get('first_name')})")
