@@ -82,6 +82,47 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now msb-career
 ```
 
+### Запуск напрямую на порту 5040, без Nginx
+
+Готовый файл находится в `deploy/msb-career.service`. Он запускает глобально
+установленный Gunicorn через `/usr/bin/python3` и слушает `0.0.0.0:5040`.
+
+```bash
+cd /var/www/msb-career
+sudo python3 -m pip install -r requirements.txt
+# На Debian/Ubuntu с запретом system-wide pip может понадобиться:
+# sudo python3 -m pip install --break-system-packages -r requirements.txt
+
+sudo mkdir -p data uploads
+sudo chown -R www-data:www-data data uploads
+sudo chown root:www-data .env
+sudo chmod 640 .env
+
+sudo cp deploy/msb-career.service /etc/systemd/system/msb-career.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now msb-career
+sudo systemctl status msb-career
+```
+
+Для прямого HTTP-доступа задайте в `.env`:
+
+```env
+PORT=5040
+SESSION_COOKIE_SECURE=false
+TRUST_PROXY=false
+```
+
+Логи и перезапуск:
+
+```bash
+sudo journalctl -u msb-career -f
+sudo systemctl restart msb-career
+```
+
+Сайт будет доступен по адресу `http://SERVER_IP:5040`. При включённом firewall
+откройте TCP-порт 5040. Прямой HTTP не шифрует пароль и токены; для публичного
+интернет-сервера рекомендуется HTTPS через reverse proxy.
+
 ### Nginx (пример server-блока)
 
 ```nginx
@@ -101,7 +142,12 @@ server {
 }
 ```
 
-Не забудьте `certbot` для HTTPS.
+Не забудьте `certbot` для HTTPS. При работе за Nginx установите в `.env`:
+
+```env
+SESSION_COOKIE_SECURE=true
+TRUST_PROXY=true
+```
 
 ---
 

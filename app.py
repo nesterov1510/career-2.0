@@ -94,7 +94,10 @@ def _secret_key():
 
 SECRET_KEY = _secret_key()
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # за nginx
+# Forwarded headers are trusted only when the app actually runs behind a
+# controlled reverse proxy. Directly exposed Gunicorn must leave this disabled.
+if os.environ.get("TRUST_PROXY", "").lower() in ("1", "true", "yes"):
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config.update(
     SECRET_KEY=SECRET_KEY,
     MAX_CONTENT_LENGTH=20 * 1024 * 1024,
