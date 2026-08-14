@@ -5,10 +5,15 @@ import secrets
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
+from dotenv import load_dotenv
 from flask import g
 from werkzeug.security import generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Load the project's .env before any settings are read. Real process variables
+# take priority, so systemd/Docker configuration is never overwritten.
+load_dotenv(os.path.join(BASE_DIR, ".env"), override=False)
+
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data", "career.db"))
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", os.path.join(BASE_DIR, "uploads"))
 TZ = 5  # GMT+5, Ашхабад
