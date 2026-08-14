@@ -14,12 +14,23 @@
     <tr><td class="muted">Телефон</td><td><a href="tel:{{ row.phone }}" class="mono"><b>{{ phone_display(row.phone) }}</b></a>
       &nbsp;<a href="https://wa.me/{{ row.phone.lstrip('+') }}" target="_blank" rel="noopener">WhatsApp ↗</a></td></tr>
     {% if row.email %}<tr><td class="muted">E-mail</td><td><a href="mailto:{{ row.email }}">{{ row.email }}</a></td></tr>{% endif %}
-    {% if row.city %}<tr><td class="muted">Город / этрап</td><td>{{ row.city }}</td></tr>{% endif %}
-    <tr><td class="muted">Опыт работы</td><td>{{ ALLOWED_LABEL.get(row.experience, row.experience) }}</td></tr>
+    {% if row.city %}<tr><td class="muted">Проживание</td><td>{{ row.city }}</td></tr>{% endif %}
+    {% if row.birth_date %}<tr><td class="muted">Дата рождения</td><td>{{ row.birth_date }}</td></tr>{% endif %}
+    {% if row.availability %}<tr><td class="muted">Готов приступить</td><td>{{ AVAILABILITY_LABEL.get(row.availability, row.availability) }}</td></tr>{% endif %}
+    <tr><td class="muted">Опыт ремонта</td><td>{{ ALLOWED_LABEL.get(row.experience, row.experience) }}</td></tr>
+    {% if row.devices_experience %}<tr><td class="muted">Опыт с устройствами</td><td style="white-space:pre-wrap">{{ row.devices_experience }}</td></tr>{% endif %}
+    {% if row.previous_company %}<tr><td class="muted">Предыдущая компания</td><td>{{ row.previous_company }}</td></tr>{% endif %}
+    {% if row.previous_position %}<tr><td class="muted">Должность</td><td>{{ row.previous_position }}</td></tr>{% endif %}
+    {% if row.skills %}
+    <tr><td class="muted">Навыки</td><td>
+      {% for skill in row.skills.split(',') if skill %}<span class="pill gray" style="margin:2px">{{ SKILL_LABELS.get(skill, skill) }}</span>{% endfor %}
+    </td></tr>
+    {% endif %}
+    {% if row.salary %}<tr><td class="muted">Желаемая зарплата</td><td><b>{{ row.salary }} ТМТ</b></td></tr>{% endif %}
   </table>
 
   {% if row.message %}
-  <h2 style="margin-top:18px">О себе</h2>
+  <h2 style="margin-top:18px">Дополнительная информация</h2>
   <p style="white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:14px">{{ row.message }}</p>
   {% endif %}
 

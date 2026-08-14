@@ -78,7 +78,14 @@ r = s.post(f"{BASE}/apply/{token}/", data={
     "prefix": "+993", "phone": "63 123456",
     "email": "merdan@example.com",
     "city": "Ашхабад",
+    "birth_date": "1995-05-20",
+    "availability": "week",
     "experience": "y1_3",
+    "devices_experience": "Телевизоры, мониторы и блоки питания.",
+    "previous_company": "Сервисный центр",
+    "previous_position": "Мастер",
+    "skills": ["led_lcd_tv", "multimeter", "smd"],
+    "salary": "5000",
     "message": "Ремонтирую компьютеры 2 года, работал в сервисе.",
 }, files={"file": ("resume.pdf", pdf, "application/pdf")}, allow_redirects=True)
 check("успех + номер заявки", r.status_code == 200 and "Анкета отправлена" in r.text and "№" in r.text)

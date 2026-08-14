@@ -38,7 +38,7 @@
   @media(min-width:600px){.grid.two{grid-template-columns:1fr 1fr}}
   .field label{display:block;font-weight:600;font-size:14px;margin-bottom:7px}
   .req{color:var(--err)}
-  input[type=text],input[type=email],input[type=tel],select,textarea{
+  input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],select,textarea{
     width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:15px;background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s;
   }
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(47,111,237,.15)}
@@ -49,6 +49,14 @@
   .field.bad input,.field.bad select,.field.bad textarea,.field.bad .drop{border-color:var(--err)!important}
   .field.bad .ferr{display:block}
   .hint{color:var(--muted);font-size:12.5px;margin-top:6px}
+  .section-title{display:flex;align-items:center;gap:12px;margin:8px 0 2px;padding-top:12px;border-top:1px solid var(--line)}
+  .section-title:first-child{border-top:0;padding-top:0}
+  .step{width:34px;height:34px;flex:none;border-radius:10px;background:var(--acc);color:#fff;display:grid;place-items:center;font-weight:800}
+  .section-title h3{font-size:17px}
+  .checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}
+  .check-option{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1.5px solid var(--line);border-radius:11px;cursor:pointer;background:#fafbfc;font-size:14px}
+  .check-option:has(input:checked){border-color:var(--acc);background:var(--soft);color:#174ab0}
+  .check-option input{width:17px;height:17px;accent-color:var(--acc)}
 
   .drop{border:1.5px dashed #c6cdd8;border-radius:12px;padding:18px;text-align:center;color:var(--muted);font-size:14px;cursor:pointer;transition:.15s;background:#fafbfc}
   .drop:hover,.drop.over{border-color:var(--acc);background:var(--soft)}
@@ -103,21 +111,46 @@
     </div>
 
     <div class="grid">
+      <div class="section-title"><span class="step">1</span><h3 data-i18n="section_personal"></h3></div>
+
       <div class="field {{ 'bad' if errors and errors.name }}" data-f="name">
         <label for="name"><span data-i18n="name"></span> <span class="req">*</span></label>
         <input type="text" id="name" name="name" autocomplete="name" maxlength="120"
-               placeholder="{{ form.name if form else '' }}" value="{{ form.name if form else '' }}"
-               data-ph="name_ph">
+               value="{{ form.name if form else '' }}" data-ph="name_ph">
         <div class="ferr" data-i18n="name_e"></div>
       </div>
 
       <div class="grid two">
+        <div class="field {{ 'bad' if errors and errors.city }}" data-f="city">
+          <label for="city"><span data-i18n="city"></span> <span class="req">*</span></label>
+          <select id="city" name="city">
+            <option value="" data-i18n-opt="select"></option>
+            {% for residence in RESIDENCES %}
+            <option value="{{ residence }}" {{ 'selected' if form and form.city == residence }}>{{ residence }}</option>
+            {% endfor %}
+          </select>
+          <div class="ferr" data-i18n="city_e"></div>
+        </div>
+        <div class="field {{ 'bad' if errors and errors.birth_date }}" data-f="birth_date">
+          <label for="birth_date"><span data-i18n="birth_date"></span> <span class="req">*</span></label>
+          <input type="date" id="birth_date" name="birth_date" value="{{ form.birth_date if form else '' }}">
+          <div class="ferr" data-i18n="birth_date_e"></div>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="field {{ 'bad' if errors and errors.email }}" data-f="email">
+          <label for="email"><span data-i18n="email"></span></label>
+          <input type="email" id="email" name="email" autocomplete="email" maxlength="120"
+                 value="{{ form.email if form else '' }}" data-ph="email_ph">
+          <div class="ferr" data-i18n="email_e"></div>
+        </div>
         <div class="field {{ 'bad' if errors and errors.phone }}" data-f="phone">
           <label for="phone"><span data-i18n="phone"></span> <span class="req">*</span></label>
           <div class="phone">
             <select name="prefix" id="prefix">
               <option value="+993" {{ 'selected' if not form or form.prefix=='+993' }}>🇹🇲 +993</option>
-              <option value="+7"   {{ 'selected' if form and form.prefix=='+7' }}>🇷🇺 +7</option>
+              <option value="+7" {{ 'selected' if form and form.prefix=='+7' }}>🇷🇺 +7</option>
               <option value="+998" {{ 'selected' if form and form.prefix=='+998' }}>🇺🇿 +998</option>
             </select>
             <input type="tel" id="phone" name="phone" inputmode="numeric" autocomplete="tel"
@@ -125,35 +158,74 @@
           </div>
           <div class="ferr" data-i18n="phone_e"></div>
         </div>
+      </div>
 
-        <div class="field {{ 'bad' if errors and errors.email }}" data-f="email">
-          <label for="email"><span data-i18n="email"></span></label>
-          <input type="email" id="email" name="email" autocomplete="email" maxlength="120"
-                 value="{{ form.email if form else '' }}" data-ph="email_ph">
-          <div class="ferr" data-i18n="email_e"></div>
-        </div>
+      <div class="field {{ 'bad' if errors and errors.availability }}" data-f="availability">
+        <label for="availability"><span data-i18n="availability"></span> <span class="req">*</span></label>
+        <select id="availability" name="availability">
+          <option value="" data-i18n-opt="select"></option>
+          <option value="now" {{ 'selected' if form and form.availability=='now' }} data-i18n-opt="ready_now"></option>
+          <option value="week" {{ 'selected' if form and form.availability=='week' }} data-i18n-opt="ready_week"></option>
+          <option value="two_weeks" {{ 'selected' if form and form.availability=='two_weeks' }} data-i18n-opt="ready_two_weeks"></option>
+          <option value="month" {{ 'selected' if form and form.availability=='month' }} data-i18n-opt="ready_month"></option>
+          <option value="two_three_months" {{ 'selected' if form and form.availability=='two_three_months' }} data-i18n-opt="ready_later"></option>
+        </select>
+        <div class="ferr" data-i18n="availability_e"></div>
+      </div>
+
+      <div class="section-title"><span class="step">2</span><h3 data-i18n="section_experience"></h3></div>
+
+      <div class="field {{ 'bad' if errors and errors.experience }}" data-f="experience">
+        <label for="experience"><span data-i18n="experience"></span> <span class="req">*</span></label>
+        <select id="experience" name="experience">
+          <option value="" data-i18n-opt="select"></option>
+          <option value="lt1" {{ 'selected' if form and form.experience=='lt1' }} data-i18n-opt="exp1"></option>
+          <option value="y1_3" {{ 'selected' if form and form.experience=='y1_3' }} data-i18n-opt="exp2"></option>
+          <option value="y3_5" {{ 'selected' if form and form.experience=='y3_5' }} data-i18n-opt="exp3"></option>
+          <option value="y5_10" {{ 'selected' if form and form.experience=='y5_10' }} data-i18n-opt="exp4"></option>
+          <option value="gt10" {{ 'selected' if form and form.experience=='gt10' }} data-i18n-opt="exp5"></option>
+        </select>
+        <div class="ferr" data-i18n="experience_e"></div>
+      </div>
+
+      <div class="field {{ 'bad' if errors and errors.devices_experience }}" data-f="devices_experience">
+        <label for="devices_experience" data-i18n="devices_experience"></label>
+        <textarea id="devices_experience" name="devices_experience" maxlength="1000" data-ph="devices_ph">{{ form.devices_experience if form else '' }}</textarea>
+        <div class="ferr" data-i18n="text_long_e"></div>
       </div>
 
       <div class="grid two">
-        <div class="field {{ 'bad' if errors and errors.experience }}" data-f="experience">
-          <label for="experience"><span data-i18n="experience"></span> <span class="req">*</span></label>
-          <select id="experience" name="experience">
-            <option value="" data-i18n-opt="exp_sel"></option>
-            <option value="none" {{ 'selected' if form and form.experience=='none' }} data-i18n-opt="exp0"></option>
-            <option value="lt1"  {{ 'selected' if form and form.experience=='lt1' }} data-i18n-opt="exp1"></option>
-            <option value="y1_3" {{ 'selected' if form and form.experience=='y1_3' }} data-i18n-opt="exp2"></option>
-            <option value="y3_5" {{ 'selected' if form and form.experience=='y3_5' }} data-i18n-opt="exp3"></option>
-            <option value="gt5"  {{ 'selected' if form and form.experience=='gt5' }} data-i18n-opt="exp4"></option>
-          </select>
-          <div class="ferr" data-i18n="experience_e"></div>
+        <div class="field {{ 'bad' if errors and errors.previous_company }}" data-f="previous_company">
+          <label for="previous_company" data-i18n="previous_company"></label>
+          <input type="text" id="previous_company" name="previous_company" maxlength="140" value="{{ form.previous_company if form else '' }}">
+          <div class="ferr" data-i18n="text_long_e"></div>
         </div>
+        <div class="field {{ 'bad' if errors and errors.previous_position }}" data-f="previous_position">
+          <label for="previous_position" data-i18n="previous_position"></label>
+          <input type="text" id="previous_position" name="previous_position" maxlength="140" value="{{ form.previous_position if form else '' }}">
+          <div class="ferr" data-i18n="text_long_e"></div>
+        </div>
+      </div>
 
-        <div class="field {{ 'bad' if errors and errors.city }}" data-f="city">
-          <label for="city" data-i18n="city"></label>
-          <input type="text" id="city" name="city" maxlength="80"
-                 value="{{ form.city if form else '' }}" data-ph="city_ph">
-          <div class="ferr" data-i18n="city_e"></div>
+      <div class="section-title"><span class="step">3</span><h3 data-i18n="section_skills"></h3></div>
+      <div class="field {{ 'bad' if errors and errors.skills }}" data-f="skills">
+        <div class="checks">
+          {% for key, label in SKILL_LABELS.items() %}
+          <label class="check-option">
+            <input type="checkbox" name="skills" value="{{ key }}" {{ 'checked' if form and key in form.getlist('skills') }}>
+            <span>{{ label }}</span>
+          </label>
+          {% endfor %}
         </div>
+        <div class="ferr" data-i18n="skills_e"></div>
+      </div>
+
+      <div class="section-title"><span class="step">4</span><h3 data-i18n="section_extra"></h3></div>
+      <div class="field {{ 'bad' if errors and errors.salary }}" data-f="salary">
+        <label for="salary"><span data-i18n="salary"></span> <span class="req">*</span></label>
+        <input type="number" id="salary" name="salary" min="1" max="9999999" inputmode="numeric"
+               value="{{ form.salary if form else '' }}" data-ph="salary_ph">
+        <div class="ferr" data-i18n="salary_e"></div>
       </div>
 
       <div class="field {{ 'bad' if errors and errors.message }}" data-f="message">
@@ -173,8 +245,7 @@
           <span>📄</span><span class="nm" id="chip-name"></span>
           <button type="button" id="chip-x" title="Убрать">✕</button>
         </div>
-        <input type="file" id="file" name="file" hidden
-               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+        <input type="file" id="file" name="file" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
         <div class="ferr" data-i18n="file_e"></div>
       </div>
     </div>
@@ -192,15 +263,21 @@ const T = {
   ru: {
     vacancy_tag: "Открытая вакансия",
     source: "Вакансия с сайта",
-    title: "Анкета кандидата",
+    title: "Анкета соискателя",
     subtitle: "Заполните форму — заявка сразу уйдёт работодателю. Поля со звёздочкой * обязательны.",
-    name: "ФИО", name_ph: "Например: Мердан Худайгулиев", name_e: "Укажите имя и фамилию",
-    phone: "Номер телефона", phone_e: "Укажите номер телефона",
-    email: "E-mail (не обязательно)", email_ph: "example@mail.com", email_e: "Неверный e-mail",
-    experience: "Опыт работы", experience_e: "Выберите опыт работы",
-    exp_sel: "Выберите вариант", exp0: "Без опыта", exp1: "Меньше 1 года", exp2: "1–3 года", exp3: "3–5 лет", exp4: "Больше 5 лет",
-    city: "Город / этрап", city_ph: "Ашхабад", city_e: "Название города слишком длинное",
-    message: "О себе", message_ph: "Кратко расскажите о себе: чем занимались, что умеете…", message_e: "Слишком длинный текст (макс. 2000)",
+    section_personal: "Личные данные", section_experience: "Опыт работы", section_skills: "Навыки (отметьте то, что умеете)", section_extra: "Дополнительно",
+    select: "Выберите", name: "Ф.И.О.", name_ph: "Например: Мердан Худайгулиев", name_e: "Укажите имя и фамилию",
+    city: "Проживание", city_e: "Выберите место проживания", birth_date: "Дата рождения", birth_date_e: "Укажите дату рождения",
+    phone: "Телефон / WhatsApp", phone_e: "Укажите номер телефона",
+    email: "E-mail (если есть)", email_ph: "example@mail.com", email_e: "Неверный e-mail",
+    availability: "Когда готовы приступить к работе?", availability_e: "Выберите вариант",
+    ready_now: "Сразу", ready_week: "Через неделю", ready_two_weeks: "Через две недели", ready_month: "Через месяц", ready_later: "Через 2–3 месяца",
+    experience: "Сколько лет работаете в ремонте электроники?", experience_e: "Выберите опыт работы",
+    exp1: "Менее 1 года", exp2: "1–3 года", exp3: "3–5 лет", exp4: "5–10 лет", exp5: "Более 10 лет",
+    devices_experience: "В каких устройствах у вас больше опыта?", devices_ph: "Например: LED-телевизоры, мониторы, блоки питания…",
+    previous_company: "Где вы работали ранее? (название компании)", previous_position: "Ваша должность", text_long_e: "Текст слишком длинный",
+    skills_e: "Проверьте выбранные навыки", salary: "Желаемая зарплата (ТМТ)", salary_ph: "Например: 5000", salary_e: "Укажите желаемую зарплату",
+    message: "Дополнительная информация о себе", message_ph: "Расскажите о себе подробнее…", message_e: "Слишком длинный текст (макс. 2000)",
     file: "Резюме или документы", file_drop: "Нажмите или перетащите файл сюда", file_hint: "PDF, DOC(X), JPG или PNG · до 5 МБ",
     file_e: "Неподходящий файл",
     send: "Отправить анкету",
@@ -211,13 +288,19 @@ const T = {
     source: "Iş ornunyň çeşmesi:",
     title: "Dalaşgäriň sowalnamasy",
     subtitle: "Formany dolduryň — ýüz tutma gönüden-göni iş berijä iberiler. * bilen bellenen meýdançalar hökmanydyr.",
-    name: "Adyňyz we familiýaňyz", name_ph: "Mysal üçin: Merdan Hudaýguluyew", name_e: "Adyňyzy we familiýaňyzy ýazyň",
-    phone: "Telefon belgiňiz", phone_e: "Telefon belgiňizi ýazyň",
-    email: "E-mail (hökmany däl)", email_ph: "example@mail.com", email_e: "E-nädogry ýazylan",
-    experience: "Iş tejribäňiz", experience_e: "Iş tejribäňizi saýlaň",
-    exp_sel: "Warianty saýlaň", exp0: "Tejribesiz", exp1: "1 ýyldan az", exp2: "1–3 ýyl", exp3: "3–5 ýyl", exp4: "5 ýyldan köp",
-    city: "Şäher / etrap", city_ph: "Aşgabat", city_e: "Şäheriň ady gaty uzyn",
-    message: "Özüňiz barada", message_ph: "Gysgaça özüňiz barada ýazyň: näme işledim, näme başarýaryn…", message_e: "Tekst gaty uzyn (iň köp 2000)",
+    section_personal: "Şahsy maglumatlar", section_experience: "Iş tejribesi", section_skills: "Başarnyklar (başarýanlaryňyzy belläň)", section_extra: "Goşmaça",
+    select: "Saýlaň", name: "Adyňyz we familiýaňyz", name_ph: "Mysal üçin: Merdan Hudaýguluyew", name_e: "Adyňyzy we familiýaňyzy ýazyň",
+    city: "Ýaşaýan ýeriňiz", city_e: "Ýaşaýan ýeriňizi saýlaň", birth_date: "Doglan senäňiz", birth_date_e: "Doglan senäňizi görkeziň",
+    phone: "Telefon / WhatsApp", phone_e: "Telefon belgiňizi ýazyň",
+    email: "E-mail (bar bolsa)", email_ph: "example@mail.com", email_e: "E-mail nädogry ýazylan",
+    availability: "Işe haçan başlap bilersiňiz?", availability_e: "Warianty saýlaň",
+    ready_now: "Derrew", ready_week: "Bir hepdeden", ready_two_weeks: "Iki hepdeden", ready_month: "Bir aýdan", ready_later: "2–3 aýdan",
+    experience: "Elektronika bejergisinde näçe ýyl işlediňiz?", experience_e: "Iş tejribäňizi saýlaň",
+    exp1: "1 ýyldan az", exp2: "1–3 ýyl", exp3: "3–5 ýyl", exp4: "5–10 ýyl", exp5: "10 ýyldan köp",
+    devices_experience: "Haýsy enjamlarda has köp tejribäňiz bar?", devices_ph: "Mysal: LED telewizorlar, monitorlar, tok bloklary…",
+    previous_company: "Öň nirede işlediňiz? (kompaniýanyň ady)", previous_position: "Wezipäňiz", text_long_e: "Tekst gaty uzyn",
+    skills_e: "Saýlanan başarnyklary barlaň", salary: "Isleýän aýlygyňyz (TMT)", salary_ph: "Mysal: 5000", salary_e: "Isleýän aýlygyňyzy ýazyň",
+    message: "Özüňiz barada goşmaça maglumat", message_ph: "Özüňiz barada giňişleýin ýazyň…", message_e: "Tekst gaty uzyn (iň köp 2000)",
     file: "Rezume ýa-da resminamalar", file_drop: "Şu ýere basyň ýa-da faýly süýräň", file_hint: "PDF, DOC(X), JPG ýa-da PNG · 5 MB çenli",
     file_e: "Uýgunsyz faýl",
     send: "Sowalnamany iber",
@@ -289,7 +372,13 @@ form.addEventListener("submit", e => {
   const badEmail = !!email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
   setBad("email", badEmail); if (badEmail) ok = false;
 
+  setBad("city", !form.city.value); if (!form.city.value) ok = false;
+  setBad("birth_date", !form.birth_date.value); if (!form.birth_date.value) ok = false;
+  setBad("availability", !form.availability.value); if (!form.availability.value) ok = false;
   setBad("experience", !form.experience.value); if (!form.experience.value) ok = false;
+  const salary = form.salary.value.trim();
+  setBad("salary", !/^\d{1,7}$/.test(salary) || Number(salary) <= 0);
+  if (!/^\d{1,7}$/.test(salary) || Number(salary) <= 0) ok = false;
 
   const f = fileInput.files[0];
   let badFile = false;

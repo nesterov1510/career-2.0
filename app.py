@@ -7,7 +7,7 @@ import secrets
 import sqlite3
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from threading import Lock
 from urllib.parse import urlsplit
@@ -34,7 +34,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from models import (
     ALLOWED_EXT,
     ALLOWED_LABEL,
+    AVAILABILITY_LABEL,
     DB_PATH,
+    SKILL_LABELS,
     TZ,
     UPLOAD_DIR,
     close_db,
@@ -132,6 +134,15 @@ if not PANEL or not re.fullmatch(r"/[A-Za-z0-9_-]+", PANEL):
 
 MAX_FILE = 5 * 1024 * 1024
 TIMEZONE = timezone(timedelta(hours=TZ))
+RESIDENCES = (
+    "Ашхабад", "Арчабил (Ашхабад)", "Балканабат", "Берекет", "Газанджик",
+    "Героглы (Тагтабазар)", "Гёкдепе", "Гумдаг", "Дашогуз",
+    "Дервезе (Дарган-Ата)", "Етрек", "Кака", "Керки", "Киянлы",
+    "Конеургенч", "Мары", "Махтумкули", "Мукры", "Сейди", "Серхетабат",
+    "Теджен", "Туркменабат (Чарджоу)", "Туркменбаши (Красноводск)",
+    "Туркменкала", "Узбекистан (гражданин ТМ)", "Хазар (Челекен)",
+    "Ходжамбаз", "Чагыл",
+)
 
 # ---------------------------------------------------------------- утилиты ---
 def now():
@@ -263,8 +274,8 @@ def send_application(app_id):
         destination["message_thread_id"] = topic_id
 
     about = (row["message"] or "").strip()
-    if len(about) > 3000:
-        about = about[:3000] + "…"
+    if len(about) > 1200:
+        about = about[:1200] + "…"
 
     lines = [
         "🆕 <b>Новая анкета на вакансию</b>",
@@ -281,11 +292,34 @@ def send_application(app_id):
     ]
     if row["email"]:
         lines.append(f"✉️ Email: {html_mod.escape(row['email'])}")
-    lines.append(f"🛠 Опыт: {html_mod.escape(ALLOWED_LABEL.get(row['experience'], row['experience']))}")
     if row["city"]:
-        lines.append(f"📍 Город: {html_mod.escape(row['city'])}")
+        lines.append(f"📍 Проживание: {html_mod.escape(row['city'])}")
+    if row["birth_date"]:
+        lines.append(f"🎂 Дата рождения: {html_mod.escape(row['birth_date'])}")
+    if row["availability"]:
+        availability_label = AVAILABILITY_LABEL.get(
+            row["availability"], row["availability"]
+        )
+        lines.append(f"📅 Готов приступить: {html_mod.escape(availability_label)}")
+    experience_label = ALLOWED_LABEL.get(row["experience"], row["experience"] or "—")
+    lines.append(f"🛠 Опыт ремонта: {html_mod.escape(experience_label)}")
+    if row["devices_experience"]:
+        devices = row["devices_experience"][:600]
+        lines.append(f"📺 Опыт с устройствами: {html_mod.escape(devices)}")
+    if row["previous_company"]:
+        lines.append(f"🏢 Компания: {html_mod.escape(row['previous_company'])}")
+    if row["previous_position"]:
+        lines.append(f"💼 Должность: {html_mod.escape(row['previous_position'])}")
+    if row["skills"]:
+        skill_names = [
+            SKILL_LABELS.get(value, value)
+            for value in row["skills"].split(",") if value
+        ]
+        lines.append(f"🔧 Навыки: {html_mod.escape(', '.join(skill_names))}")
+    if row["salary"]:
+        lines.append(f"💰 Желаемая зарплата: {html_mod.escape(row['salary'])} ТМТ")
     if about:
-        lines += ["", f"💬 О себе:\n{html_mod.escape(about)}"]
+        lines += ["", f"💬 Дополнительно:\n{html_mod.escape(about)}"]
     if row["file_name"]:
         lines.append(f"📎 Документ: {html_mod.escape(row['file_name'])} ({human_size(row['file_size'])})")
     lines += [
@@ -364,6 +398,9 @@ def inject_globals():
         "human_size": human_size,
         "phone_display": phone_display,
         "ALLOWED_LABEL": ALLOWED_LABEL,
+        "AVAILABILITY_LABEL": AVAILABILITY_LABEL,
+        "SKILL_LABELS": SKILL_LABELS,
+        "RESIDENCES": RESIDENCES,
         "now": now,
     }
 
@@ -428,7 +465,14 @@ def handle_apply(token_or_slug):
     digits = re.sub(r"\D", "", request.form.get("phone", ""))
     phone = prefix + digits
     city = (request.form.get("city") or "").strip()
+    birth_date = (request.form.get("birth_date") or "").strip()
+    availability = request.form.get("availability", "")
     experience = request.form.get("experience", "")
+    devices_experience = (request.form.get("devices_experience") or "").strip()
+    previous_company = (request.form.get("previous_company") or "").strip()
+    previous_position = (request.form.get("previous_position") or "").strip()
+    selected_skills = request.form.getlist("skills")
+    salary = re.sub(r"\s+", "", request.form.get("salary", ""))
     message = (request.form.get("message") or "").strip()
 
     errors = {}
@@ -436,12 +480,30 @@ def handle_apply(token_or_slug):
         errors["name"] = "Укажите имя и фамилию" if lang == "ru" else "Adyňyzy we familiýaňyzy ýazyň"
     if prefix not in allowed_prefixes or not 5 <= len(digits) <= 12:
         errors["phone"] = "Укажите номер телефона" if lang == "ru" else "Telefon belgiňizi ýazyň"
-    if experience not in ALLOWED_LABEL:
+    if city not in RESIDENCES:
+        errors["city"] = "Выберите место проживания" if lang == "ru" else "Ýaşaýan ýeriňizi saýlaň"
+    try:
+        parsed_birth_date = date.fromisoformat(birth_date)
+        if parsed_birth_date >= now().date() or parsed_birth_date.year < 1940:
+            raise ValueError
+    except ValueError:
+        errors["birth_date"] = "Укажите корректную дату рождения" if lang == "ru" else "Doglan senäňizi dogry görkeziň"
+    if availability not in AVAILABILITY_LABEL:
+        errors["availability"] = "Выберите, когда готовы приступить" if lang == "ru" else "Işe haçan başlap biljekdigiňizi saýlaň"
+    if experience not in ALLOWED_LABEL or experience in ("none", "gt5"):
         errors["experience"] = "Выберите опыт работы" if lang == "ru" else "Iş tejribäňizi saýlaň"
     if len(email) > 120 or (email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email)):
         errors["email"] = "Неверный e-mail" if lang == "ru" else "E-nädogry ýazylan"
-    if len(city) > 80:
-        errors["city"] = "Название города слишком длинное" if lang == "ru" else "Şäheriň ady gaty uzyn"
+    if len(devices_experience) > 1000:
+        errors["devices_experience"] = "Текст слишком длинный" if lang == "ru" else "Tekst gaty uzyn"
+    if len(previous_company) > 140:
+        errors["previous_company"] = "Название слишком длинное" if lang == "ru" else "At gaty uzyn"
+    if len(previous_position) > 140:
+        errors["previous_position"] = "Название должности слишком длинное" if lang == "ru" else "Wezipe ady gaty uzyn"
+    if any(skill not in SKILL_LABELS for skill in selected_skills):
+        errors["skills"] = "Выбраны неизвестные навыки" if lang == "ru" else "Nädogry başarnyk saýlandy"
+    if not re.fullmatch(r"\d{1,7}", salary) or int(salary or 0) <= 0:
+        errors["salary"] = "Укажите желаемую зарплату в ТМТ" if lang == "ru" else "Isleýän aýlygyňyzy TMT-de görkeziň"
     if len(message) > 2000:
         errors["message"] = "Слишком длинный текст (макс. 2000)" if lang == "ru" else "Tekst gaty uzyn (iň köp 2000)"
 
@@ -479,13 +541,19 @@ def handle_apply(token_or_slug):
 
     try:
         cur = db().execute(
-            """INSERT INTO applications (site_id, name, phone, email, city, experience,
-                                         message, file_name, file_storage, file_size,
-                                         status, tg_ok, created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?, 'new', 0, ?)""",
-            (site["id"], name, phone, email, city, experience,
-             message, file.filename[:180] if file_ok else None,
-             storage_name, fsize if file_ok else None, now().isoformat()),
+            """INSERT INTO applications (
+                   site_id, name, phone, email, city, birth_date, availability,
+                   experience, devices_experience, previous_company,
+                   previous_position, skills, salary, message, file_name,
+                   file_storage, file_size, status, tg_ok, created_at
+               ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'new', 0, ?)""",
+            (
+                site["id"], name, phone, email, city, birth_date, availability,
+                experience, devices_experience, previous_company,
+                previous_position, ",".join(dict.fromkeys(selected_skills)),
+                salary, message, file.filename[:180] if file_ok else None,
+                storage_name, fsize if file_ok else None, now().isoformat(),
+            ),
         )
         db().commit()
     except sqlite3.DatabaseError:
