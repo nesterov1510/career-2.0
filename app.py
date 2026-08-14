@@ -42,6 +42,7 @@ from models import (
     get_admin_by_login,
     get_setting,
     get_site,
+    get_site_for_apply,
     init_db,
     seed_default_admin,
     set_setting,
@@ -516,7 +517,15 @@ def apply_success():
         lang = "ru"
     if not app_id:
         return redirect(url_for("index"))
-    return render_template("success.html", app_id=app_id, lang=lang)
+    source_site = get_site_for_apply(app_id)
+    return_url = clean_url(source_site["url"]) if source_site else None
+    return render_template(
+        "success.html",
+        app_id=app_id,
+        lang=lang,
+        return_url=return_url,
+        return_site=source_site["name"] if source_site else None,
+    )
 
 
 # ============================================================== АДМИН-ПАНЕЛЬ ===
