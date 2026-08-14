@@ -5,10 +5,9 @@ After=network-online.target
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/msb-career
-EnvironmentFile=-/var/www/msb-career/.env
+User=windowrepair-ae
+WorkingDirectory=/home/windowrepair-ae/msb-career
+EnvironmentFile=-/home/windowrepair-ae/msb-career/.env
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 -m gunicorn --workers 2 --bind 0.0.0.0:5040 --timeout 60 --access-logfile - --error-logfile - wsgi:app
 ExecReload=/bin/kill -s HUP $MAINPID
@@ -20,7 +19,8 @@ UMask=0027
 PrivateTmp=true
 NoNewPrivileges=true
 ProtectSystem=full
-ProtectHome=true
+# Проект и записываемые data/uploads находятся в домашнем каталоге.
+ProtectHome=false
 
 [Install]
 WantedBy=multi-user.target

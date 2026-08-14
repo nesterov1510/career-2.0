@@ -87,16 +87,17 @@ sudo systemctl enable --now msb-career
 Готовый файл находится в `deploy/msb-career.service`. Он запускает глобально
 установленный Gunicorn через `/usr/bin/python3` и слушает `0.0.0.0:5040`.
 
+Сервис подготовлен для каталога `/home/windowrepair-ae/msb-career` и пользователя
+`windowrepair-ae`.
+
 ```bash
-cd /var/www/msb-career
+cd /home/windowrepair-ae/msb-career
 sudo python3 -m pip install -r requirements.txt
 # На Debian/Ubuntu с запретом system-wide pip может понадобиться:
 # sudo python3 -m pip install --break-system-packages -r requirements.txt
 
-sudo mkdir -p data uploads
-sudo chown -R www-data:www-data data uploads
-sudo chown root:www-data .env
-sudo chmod 640 .env
+mkdir -p data uploads
+chmod 600 .env
 
 sudo cp deploy/msb-career.service /etc/systemd/system/msb-career.service
 sudo systemctl daemon-reload
