@@ -70,7 +70,7 @@ After=network.target
 User=www-data
 WorkingDirectory=/var/www/msb-career
 EnvironmentFile=/var/www/msb-career/.env
-ExecStart=/var/www/msb-career/venv/bin/gunicorn -w 2 -b 127.0.0.1:5000 wsgi:app
+ExecStart=/var/www/msb-career/venv/bin/gunicorn -w 2 -b 127.0.0.1:5040 wsgi:app
 Restart=always
 
 [Install]
@@ -92,7 +92,7 @@ server {
     client_max_body_size 20M;
 
     location / {
-        proxy_pass http://127.0.0.1:5000;
+        proxy_pass http://127.0.0.1:5040;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -151,8 +151,8 @@ server {
 cd msb-career
 python3 -m venv venv && venv/bin/pip install -r requirements.txt
 ADMIN_PASSWORD=admin123 venv/bin/python wsgi.py   # или: python app.py
-# http://localhost:5000 — главная
-# http://localhost:5000/x-panel-7f3a/login/ — панель (admin / admin123)
+# http://localhost:5040 — главная
+# http://localhost:5040/x-panel-7f3a/login/ — панель (admin / admin123)
 ```
 
 Для запуска по локальному HTTP (`localhost` или `192.168.x.x`) укажите в `.env`:

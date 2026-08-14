@@ -7,7 +7,7 @@ import sys
 
 import requests
 
-BASE = os.environ.get("TEST_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+BASE = os.environ.get("TEST_BASE_URL", "http://127.0.0.1:5040").rstrip("/")
 PANEL = os.environ.get("PANEL_PATH", "/x-panel-7f3a").rstrip("/")
 DB_PATH = os.environ.get("DB_PATH", "data/career.db")
 ok_count = 0
@@ -54,7 +54,7 @@ r = s.post(BASE + PANEL + "/sites/", data={
     "vacancy": "Мастер по ремонту компьютеров и ноутбуков",
 }, allow_redirects=True)
 check("сайт добавлен", "Сайт добавлен" in r.text and "apply/" in r.text)
-m = re.search(r'value="http://127\.0\.0\.1:5000/apply/([^/]+)/"', r.text)
+m = re.search(r'value="http://127\.0\.0\.1:5040/apply/([^/]+)/"', r.text)
 check("ссылка с токеном сгенерирована", bool(m))
 token = m.group(1)
 print(f"    ссылка анкеты: /apply/{token}/")
