@@ -411,7 +411,16 @@ def inject_globals():
 # ============================================================== ПУБЛИЧНАЯ ЧАСТЬ
 @app.route("/")
 def index():
-    return render_template("home.html")
+    # Активные записи из панели одновременно являются карточками вакансий на
+    # главной. Закрытые оставляем в списке (с понятным статусом), чтобы
+    # посетитель всё ещё мог перейти на сайт работодателя.
+    sites = db().execute(
+        """SELECT * FROM sites
+           WHERE is_active=1
+           ORDER BY is_closed ASC, id DESC"""
+    ).fetchall()
+    open_count = sum(1 for site in sites if not site["is_closed"])
+    return render_template("home.html", sites=sites, open_count=open_count)
 
 
 @app.route("/robots.txt")
@@ -708,7 +717,7 @@ def sites():
                     (name, slug[:80], gen_token(), site_url, vacancy, now().isoformat()),
                 )
                 db().commit()
-                flash("Сайт добавлен. Ссылка на анкету готова.", "ok")
+                flash("Сайт добавлен. Вакансия опубликована на главной, ссылка на анкету готова.", "ok")
             return redirect(url_for("admin.sites"))
 
         sid = request.form.get("site_id")
@@ -736,9 +745,16 @@ def sites():
             db().commit()
             flash("Токен обновлён — старая ссылка больше не работает.", "ok")
         elif action == "toggle":
+            will_be_active = 0 if site["is_active"] else 1
             db().execute("UPDATE sites SET is_active=? WHERE id=?",
-                         (0 if site["is_active"] else 1, sid))
+                         (will_be_active, sid))
             db().commit()
+            flash(
+                "Вакансия опубликована на главной."
+                if will_be_active
+                else "Вакансия скрыта с главной, прямая ссылка на анкету выключена.",
+                "ok",
+            )
         elif action == "delete":
             for row in db().execute("SELECT file_storage FROM applications WHERE site_id=?", (sid,)):
                 if row["file_storage"]:

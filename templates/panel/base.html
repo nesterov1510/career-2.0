@@ -95,9 +95,10 @@
   <aside class="side">
     <div class="brand"><span class="dot">M</span> MSB Career</div>
     <a class="nav {{ 'on' if active == 'admin.dashboard' }}" href="{{ url_for('admin.dashboard') }}">📊 Дашборд</a>
-    <a class="nav {{ 'on' if active == 'admin.sites' }}" href="{{ url_for('admin.sites') }}">🌐 Сайты</a>
+    <a class="nav {{ 'on' if active == 'admin.sites' }}" href="{{ url_for('admin.sites') }}">💼 Сайты и вакансии</a>
     <a class="nav {{ 'on' if active and active.startswith('admin.app') }}" href="{{ url_for('admin.apps') }}">📥 Заявки</a>
     <a class="nav {{ 'on' if active and active.startswith('admin.settings') }}" href="{{ url_for('admin.settings') }}">⚙️ Настройки</a>
+    <a class="nav" href="{{ url_for('index') }}" target="_blank" rel="noopener">↗ Открыть главную</a>
     <div class="spacer"></div>
     <form method="post" action="{{ url_for('admin.logout') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

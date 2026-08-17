@@ -58,10 +58,30 @@ m = re.search(r'value="http://127\.0\.0\.1:5040/apply/([^/]+)/"', r.text)
 check("ссылка с токеном сгенерирована", bool(m))
 token = m.group(1)
 print(f"    ссылка анкеты: /apply/{token}/")
+r = s.get(BASE + "/")
+check(
+    "вакансия появилась на главной",
+    "TV Repair by Meryosab" in r.text
+    and "Мастер по ремонту компьютеров" in r.text
+    and f"/apply/{token}/" in r.text,
+)
+
+print("== Редактирование вакансии ==")
+r = s.get(BASE + PANEL + "/sites/")
+tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
+sid = re.search(r'name="site_id" value="(\d+)"', r.text).group(1)
+r = s.post(BASE + PANEL + "/sites/", data={
+    "csrf_token": tok, "site_id": sid, "action": "update",
+    "name": "TV Repair by Meryosab", "url": "https://tvrepair.meryosab.com",
+    "vacancy": "Мастер по ремонту компьютеров и ноутбуков — обновлено",
+}, allow_redirects=True)
+check("изменения сохранены в панели", "Изменения сохранены" in r.text)
+r = s.get(BASE + "/")
+check("название вакансии обновилось на главной", "— обновлено" in r.text)
 
 print("== Анкета кандидата ==")
 r = s.get(f"{BASE}/apply/{token}/")
-check("анкета открывается", r.status_code == 200 and "Анкета кандидата" in r.text)
+check("анкета открывается", r.status_code == 200 and "Анкета соискателя" in r.text)
 check("вакансия и сайт в шапке", "Мастер по ремонту компьютеров" in r.text
       and "tvrepair.meryosab.com" in r.text)
 check("переключатель TM", "?lang=tm" in r.text)

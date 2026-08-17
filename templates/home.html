@@ -3,37 +3,205 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MSB Career — анкеты на вакансии</title>
-<meta name="robots" content="noindex">
+<title>Вакансии — MSB Career</title>
+<meta name="description" content="Актуальные вакансии компаний-партнёров MSB Career. Выберите вакансию и отправьте анкету работодателю онлайн.">
+<meta name="theme-color" content="#2457e6">
 <style>
-  :root{--bg:#f6f7f9;--card:#fff;--ink:#101828;--muted:#667085;--line:#e4e7ec;--acc:#2f6fed;--r:18px}
+  :root{
+    --navy:#101828;--muted:#667085;--line:#e4e7ec;--blue:#2457e6;--blue-dark:#1947c7;
+    --blue-soft:#eef3ff;--green:#067647;--green-soft:#ecfdf3;--amber:#b54708;
+    --amber-soft:#fffaeb;--surface:#fff;--page:#f7f8fb;--shadow:0 16px 45px rgba(16,24,40,.08);
+  }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
-  .wrap{max-width:680px;margin:0 auto;padding:56px 20px;flex:1}
-  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.3px}
-  .logo .dot{width:34px;height:34px;border-radius:10px;background:var(--acc);display:grid;place-items:center;color:#fff;font-size:16px}
-  h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:34px 0 14px}
-  p{color:var(--muted);line-height:1.65;font-size:16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px;margin-top:28px}
-  .steps{display:grid;gap:14px;margin-top:6px}
-  .step{display:flex;gap:12px;align-items:flex-start}
-  .step b{min-width:26px;height:26px;border-radius:8px;background:#eef3ff;color:var(--acc);display:grid;place-items:center;font-size:13px}
-  footer{text-align:center;color:var(--muted);font-size:13px;padding:22px}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--page);color:var(--navy);line-height:1.5}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit}
+  .container{width:min(1120px,calc(100% - 40px));margin:0 auto}
+
+  header{height:76px;background:rgba(255,255,255,.92);border-bottom:1px solid rgba(228,231,236,.85);display:flex;align-items:center;position:relative;z-index:2}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:24px}
+  .brand{display:flex;align-items:center;gap:11px;font-size:17px;font-weight:850;letter-spacing:.1px}
+  .brand-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#3671f4,var(--blue-dark));color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:0 7px 18px rgba(36,87,230,.23)}
+  .nav-link{font-size:14px;color:var(--muted);font-weight:650;transition:.15s}
+  .nav-link:hover{color:var(--blue)}
+
+  .hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#101b3e 0%,#183b96 55%,#2457e6 100%);color:#fff;padding:82px 0 92px}
+  .hero::before,.hero::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+  .hero::before{width:470px;height:470px;right:-130px;top:-250px;background:rgba(255,255,255,.08)}
+  .hero::after{width:310px;height:310px;left:-160px;bottom:-230px;border:60px solid rgba(255,255,255,.055)}
+  .hero-content{position:relative;z-index:1;max-width:750px}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.21);border-radius:999px;background:rgba(255,255,255,.1);font-size:13px;font-weight:700;margin-bottom:22px}
+  .eyebrow-dot{width:7px;height:7px;border-radius:50%;background:#6ce9a6;box-shadow:0 0 0 4px rgba(108,233,166,.14)}
+  h1{font-size:clamp(36px,6vw,62px);line-height:1.04;letter-spacing:-1.7px;max-width:720px}
+  .hero p{max-width:645px;color:rgba(255,255,255,.78);font-size:clamp(16px,2vw,19px);line-height:1.7;margin-top:22px}
+  .hero-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:30px}
+  .hero-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:#fff;color:#173b99;padding:13px 20px;border-radius:12px;font-size:15px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.13);transition:.15s}
+  .hero-btn:hover{transform:translateY(-1px);box-shadow:0 11px 28px rgba(0,0,0,.17)}
+  .hero-stat{font-size:14px;color:rgba(255,255,255,.7)}
+  .hero-stat strong{color:#fff;font-size:17px;margin-right:4px}
+
+  main{padding:70px 0 86px}
+  .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;margin-bottom:26px}
+  .section-kicker{color:var(--blue);font-size:12px;font-weight:850;letter-spacing:1.1px;text-transform:uppercase;margin-bottom:7px}
+  h2.section-title{font-size:clamp(26px,4vw,36px);letter-spacing:-.6px;line-height:1.15}
+  .section-note{max-width:390px;color:var(--muted);font-size:14px;text-align:right}
+
+  .vacancies{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .vacancy{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:25px;box-shadow:0 1px 2px rgba(16,24,40,.03);display:flex;flex-direction:column;min-height:270px;transition:transform .18s,box-shadow .18s,border-color .18s}
+  .vacancy:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:#cad5ed}
+  .vacancy.closed{background:#fcfcfd}
+  .vacancy-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+  .company-mark{width:46px;height:46px;flex:none;border-radius:14px;background:linear-gradient(145deg,#edf3ff,#dce8ff);color:var(--blue);display:grid;place-items:center;text-transform:uppercase;font-size:15px;font-weight:900;letter-spacing:.3px;border:1px solid #d7e3ff}
+  .status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:11.5px;font-weight:800;white-space:nowrap}
+  .status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .status.open{color:var(--green);background:var(--green-soft)}
+  .status.closed{color:var(--amber);background:var(--amber-soft)}
+  .vacancy h3{font-size:20px;line-height:1.3;letter-spacing:-.2px;margin-top:20px}
+  .company{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:14px;margin-top:7px}
+  .company svg{width:15px;height:15px;flex:none}
+  .vacancy-copy{color:var(--muted);font-size:13.5px;line-height:1.6;margin:14px 0 20px}
+  .card-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:auto}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid transparent;border-radius:11px;padding:10px 15px;font-size:13.5px;font-weight:800;transition:.15s}
+  .btn.primary{background:var(--blue);color:#fff}
+  .btn.primary:hover{background:var(--blue-dark)}
+  .btn.secondary{border-color:var(--line);background:#fff;color:#344054}
+  .btn.secondary:hover{background:#f8fafc;border-color:#cbd2dc}
+  .btn.disabled{background:#f2f4f7;color:#98a2b3;cursor:not-allowed}
+  .btn svg{width:15px;height:15px}
+
+  .empty{background:#fff;border:1px dashed #cbd5e1;border-radius:20px;text-align:center;padding:58px 24px;grid-column:1/-1}
+  .empty-icon{width:58px;height:58px;border-radius:18px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-size:26px;margin:0 auto 17px}
+  .empty h3{font-size:21px;margin-bottom:7px}
+  .empty p{color:var(--muted)}
+
+  .how{margin-top:64px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px}
+  .how h2{font-size:22px;margin-bottom:22px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .step{display:flex;align-items:flex-start;gap:13px;color:var(--muted);font-size:14px;line-height:1.6}
+  .step-number{width:31px;height:31px;flex:none;border-radius:10px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-size:13px;font-weight:900}
+  .step strong{display:block;color:var(--navy);margin-bottom:2px}
+
+  footer{background:#fff;border-top:1px solid var(--line);padding:25px 0;color:#98a2b3;font-size:13px}
+  .footer-inner{display:flex;align-items:center;justify-content:space-between;gap:20px}
+
+  @media(max-width:760px){
+    .container{width:min(100% - 28px,1120px)}
+    header{height:68px}
+    .hero{padding:60px 0 66px}
+    h1{letter-spacing:-1px}
+    main{padding:48px 0 64px}
+    .section-head{align-items:flex-start;flex-direction:column;gap:10px}
+    .section-note{text-align:left}
+    .vacancies{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr;gap:17px}
+    .how{padding:23px}
+  }
+  @media(max-width:430px){
+    .nav-link{display:none}
+    .hero-actions{align-items:flex-start;flex-direction:column}
+    .vacancy{padding:21px}
+    .card-actions{display:grid;grid-template-columns:1fr}
+    .footer-inner{align-items:flex-start;flex-direction:column;gap:5px}
+  }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="logo"><span class="dot">M</span> MSB&nbsp;Career</div>
-    <h1>Анкеты для кандидатов</h1>
-    <p>Этот сервис принимает анкеты на вакансии наших партнёров и передаёт их работодателю. Если вы пришли со страницы вакансии — откройте анкету по ссылке с той страницы.</p>
-    <div class="card">
-      <div class="steps">
-        <div class="step"><b>1</b><span>Перейдите по ссылке анкеты со страницы вакансии.</span></div>
-        <div class="step"><b>2</b><span>Заполните форму и при необходимости прикрепите резюме.</span></div>
-        <div class="step"><b>3</b><span>Заявка сразу попадает к работодателю — с вами свяжутся.</span></div>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="MSB Career — главная">
+        <span class="brand-mark">M</span>
+        <span>MSB&nbsp;Career</span>
+      </a>
+      <a class="nav-link" href="#vacancies">Смотреть вакансии ↓</a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container hero-content">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> Работа в компаниях-партнёрах</div>
+      <h1>Найдите работу, которая вам подходит</h1>
+      <p>Выберите интересующую вакансию и отправьте анкету напрямую работодателю. Это бесплатно и занимает всего несколько минут.</p>
+      <div class="hero-actions">
+        <a class="hero-btn" href="#vacancies">Найти вакансию <span aria-hidden="true">↓</span></a>
+        <span class="hero-stat"><strong>{{ open_count }}</strong> доступно сейчас</span>
       </div>
     </div>
-  </div>
-  <footer>© {{ current_year }} MSB Career · Сервис анкет для сайтов вакансий</footer>
+  </section>
+
+  <main id="vacancies">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Работа</div>
+          <h2 class="section-title">Актуальные вакансии</h2>
+        </div>
+        <p class="section-note">Все анкеты передаются напрямую работодателю. Выберите предложение, чтобы узнать больше или откликнуться.</p>
+      </div>
+
+      <div class="vacancies">
+        {% for site in sites %}
+        <article class="vacancy {{ 'closed' if site.is_closed }}">
+          <div class="vacancy-top">
+            <div class="company-mark" aria-hidden="true">{{ site.name[:2] }}</div>
+            <span class="status {{ 'closed' if site.is_closed else 'open' }}">
+              {{ 'Приём закрыт' if site.is_closed else 'Приём открыт' }}
+            </span>
+          </div>
+          <h3>{{ site.vacancy or ('Вакансии в ' ~ site.name) }}</h3>
+          <div class="company">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 21V7a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v14M13 11h5a2 2 0 0 1 2 2v8M8 9h1m-1 4h1m-1 4h1m8 0h.01M2 21h20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>{{ site.name }}</span>
+          </div>
+          <p class="vacancy-copy">
+            {% if site.is_closed %}
+              Приём анкет на эту вакансию завершён. На сайте компании могут быть другие предложения.
+            {% else %}
+              Заполните короткую анкету — работодатель получит её сразу и свяжется с подходящими кандидатами.
+            {% endif %}
+          </p>
+          <div class="card-actions">
+            {% if not site.is_closed %}
+            <a class="btn primary" href="{{ url_for('apply_form', token_or_slug=site.token) }}">
+              Откликнуться
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            {% else %}
+            <span class="btn disabled" aria-disabled="true">Анкета закрыта</span>
+            {% endif %}
+            {% if site.url %}
+            <a class="btn secondary" href="{{ site.url }}" target="_blank" rel="noopener noreferrer">
+              Сайт компании
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 5h5v5m0-5-8 8M19 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            {% endif %}
+          </div>
+        </article>
+        {% else %}
+        <div class="empty">
+          <div class="empty-icon" aria-hidden="true">💼</div>
+          <h3>Новые вакансии скоро появятся</h3>
+          <p>Сейчас нет опубликованных предложений. Загляните сюда немного позже.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <section class="how" aria-labelledby="how-title">
+        <h2 id="how-title">Как откликнуться</h2>
+        <div class="steps">
+          <div class="step"><span class="step-number">1</span><span><strong>Выберите вакансию</strong>Ознакомьтесь с предложением и компанией.</span></div>
+          <div class="step"><span class="step-number">2</span><span><strong>Заполните анкету</strong>Расскажите о себе и при желании приложите резюме.</span></div>
+          <div class="step"><span class="step-number">3</span><span><strong>Ожидайте ответа</strong>Работодатель получит анкету и свяжется с вами.</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <span>© {{ current_year }} MSB Career</span>
+      <span>Сервис анкет для сайтов вакансий</span>
+    </div>
+  </footer>
 </body>
 </html>
