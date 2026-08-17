@@ -702,7 +702,7 @@ def sites():
             if not name or len(name) > 140:
                 flash("Укажите название сайта (не более 140 символов).", "err")
             elif site_url is None or len(site_url) > 300:
-                flash("Укажите корректный адрес сайта с http:// или https://.", "err")
+                flash("Укажите корректную ссылку на вакансии с http:// или https://.", "err")
             elif len(vacancy) > 200:
                 flash("Название вакансии не должно превышать 200 символов.", "err")
             else:
@@ -729,7 +729,7 @@ def sites():
             if not name or len(name) > 140:
                 flash("Укажите название сайта (не более 140 символов).", "err")
             elif site_url is None or len(site_url) > 300:
-                flash("Укажите корректный адрес сайта с http:// или https://.", "err")
+                flash("Укажите корректную ссылку на вакансии с http:// или https://.", "err")
             elif len(vacancy) > 200:
                 flash("Название вакансии не должно превышать 200 символов.", "err")
             else:

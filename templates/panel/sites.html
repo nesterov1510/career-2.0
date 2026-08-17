@@ -4,7 +4,7 @@
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
   <div>
     <h1>Сайты и вакансии</h1>
-    <div class="sub">Добавленные записи сразу появляются на главной. Здесь можно самостоятельно менять компанию, вакансию, ссылку и статус приёма.</div>
+    <div class="sub">Добавленные записи сразу появляются на главной. Здесь можно менять компанию, вакансию, ссылку на список вакансий сайта и статус приёма.</div>
   </div>
   <a class="btn ghost" href="{{ url_for('index') }}" target="_blank" rel="noopener">Посмотреть главную ↗</a>
 </div>
@@ -21,9 +21,9 @@
         <div class="hint">Название будет показано на карточке вакансии.</div>
       </div>
       <div class="field">
-        <label>Адрес сайта (URL)</label>
-        <input type="url" name="url" placeholder="https://tvrepair.meryosab.com">
-        <div class="hint">Необязательно. На главной появится кнопка «Сайт компании».</div>
+        <label>Ссылка на все вакансии сайта</label>
+        <input type="url" name="url" placeholder="https://example.com/vacancies/">
+        <div class="hint">Вставьте страницу со списком вакансий. На главной появится кнопка «Посмотреть вакансии сайта».</div>
       </div>
       <div class="field">
         <label>Название вакансии</label>
@@ -72,8 +72,9 @@
         <input type="text" name="name" value="{{ s.name }}" required maxlength="140">
       </div>
       <div class="field">
-        <label>Адрес сайта (URL)</label>
-        <input type="url" name="url" value="{{ s.url or '' }}">
+        <label>Ссылка на все вакансии сайта</label>
+        <input type="url" name="url" value="{{ s.url or '' }}" placeholder="https://example.com/vacancies/">
+        <div class="hint">Сюда ведёт кнопка «Посмотреть вакансии сайта» на главной.</div>
       </div>
       <div class="field">
         <label>Название вакансии</label>

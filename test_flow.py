@@ -55,7 +55,7 @@ tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
 r = s.post(BASE + PANEL + "/sites/", data={
     "csrf_token": tok, "action": "add",
     "name": "TV Repair by Meryosab",
-    "url": "https://tvrepair.meryosab.com",
+    "url": "https://tvrepair.meryosab.com/vacancies/",
     "vacancy": "Мастер по ремонту компьютеров и ноутбуков",
 }, allow_redirects=True)
 check("сайт добавлен", "Сайт добавлен" in r.text and "apply/" in r.text)
@@ -68,7 +68,9 @@ check(
     "вакансия появилась на главной",
     "TV Repair by Meryosab" in r.text
     and "Мастер по ремонту компьютеров" in r.text
-    and f"/apply/{token}/" in r.text,
+    and f"/apply/{token}/" in r.text
+    and "Посмотреть вакансии сайта" in r.text
+    and 'href="https://tvrepair.meryosab.com/vacancies/"' in r.text,
 )
 
 print("== Редактирование вакансии ==")
@@ -77,7 +79,7 @@ tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
 sid = re.search(r'name="site_id" value="(\d+)"', r.text).group(1)
 r = s.post(BASE + PANEL + "/sites/", data={
     "csrf_token": tok, "site_id": sid, "action": "update",
-    "name": "TV Repair by Meryosab", "url": "https://tvrepair.meryosab.com",
+    "name": "TV Repair by Meryosab", "url": "https://tvrepair.meryosab.com/vacancies/",
     "vacancy": "Мастер по ремонту компьютеров и ноутбуков — обновлено",
 }, allow_redirects=True)
 check("изменения сохранены в панели", "Изменения сохранены" in r.text)
@@ -164,7 +166,7 @@ tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
 sid = re.search(r'name="site_id" value="(\d+)"', r.text).group(1)
 r = s.post(BASE + PANEL + "/sites/", data={
     "csrf_token": tok, "site_id": sid, "action": "update",
-    "name": "TV Repair by Meryosab", "url": "https://tvrepair.meryosab.com",
+    "name": "TV Repair by Meryosab", "url": "https://tvrepair.meryosab.com/vacancies/",
     "vacancy": "Мастер по ремонту компьютеров и ноутбуков", "is_closed": "1",
 }, allow_redirects=True)
 r = s.get(f"{BASE}/apply/{token}/")
