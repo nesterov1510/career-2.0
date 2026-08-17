@@ -28,6 +28,11 @@ s = requests.Session()
 print("== Публичная часть ==")
 r = s.get(BASE + "/")
 check("главная открывается", r.status_code == 200 and "MSB" in r.text)
+check(
+    "SEO-заголовок главной",
+    "<h1>Работа в Туркменистане и Ашхабаде</h1>" in r.text
+    and "Работа в Туркменистане и Ашхабаде — свежие вакансии" in r.text,
+)
 r = s.get(BASE + "/robots.txt")
 check("robots.txt закрывает панель", PANEL in r.text)
 

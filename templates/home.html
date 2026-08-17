@@ -3,9 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Вакансии — MSB Career</title>
-<meta name="description" content="Актуальные вакансии компаний-партнёров MSB Career. Выберите вакансию и отправьте анкету работодателю онлайн.">
+<title>Работа в Туркменистане и Ашхабаде — свежие вакансии</title>
+<meta name="description" content="Работа в Туркменистане и Ашхабаде: актуальные вакансии от компаний-партнёров. Найдите подходящую работу и отправьте анкету работодателю онлайн.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="{{ url_for('index', _external=True) }}">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:site_name" content="MSB Career">
+<meta property="og:title" content="Работа в Ашхабаде и Туркменистане — свежие вакансии">
+<meta property="og:description" content="Актуальные вакансии и работа в Ашхабаде и других городах Туркменистана. Откликайтесь напрямую работодателям.">
+<meta property="og:url" content="{{ url_for('index', _external=True) }}">
 <meta name="theme-color" content="#2457e6">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "MSB Career",
+  "url": {{ url_for('index', _external=True)|tojson }},
+  "description": "Работа и актуальные вакансии в Ашхабаде и Туркменистане",
+  "inLanguage": "ru"
+}
+</script>
 <style>
   :root{
     --navy:#101828;--muted:#667085;--line:#e4e7ec;--blue:#2457e6;--blue-dark:#1947c7;
@@ -119,9 +137,9 @@
 
   <section class="hero">
     <div class="container hero-content">
-      <div class="eyebrow"><span class="eyebrow-dot"></span> Работа в компаниях-партнёрах</div>
-      <h1>Найдите работу, которая вам подходит</h1>
-      <p>Выберите интересующую вакансию и отправьте анкету напрямую работодателю. Это бесплатно и занимает всего несколько минут.</p>
+      <div class="eyebrow"><span class="eyebrow-dot"></span> Свежие вакансии работодателей</div>
+      <h1>Работа в Туркменистане и Ашхабаде</h1>
+      <p>Актуальные вакансии в Ашхабаде и других городах Туркменистана. Выберите подходящую работу и отправьте анкету напрямую работодателю — бесплатно и за несколько минут.</p>
       <div class="hero-actions">
         <a class="hero-btn" href="#vacancies">Найти вакансию <span aria-hidden="true">↓</span></a>
         <span class="hero-stat"><strong>{{ open_count }}</strong> доступно сейчас</span>
@@ -133,8 +151,8 @@
     <div class="container">
       <div class="section-head">
         <div>
-          <div class="section-kicker">Работа</div>
-          <h2 class="section-title">Актуальные вакансии</h2>
+          <div class="section-kicker">Поиск работы</div>
+          <h2 class="section-title">Свежие вакансии в Ашхабаде и Туркменистане</h2>
         </div>
         <p class="section-note">Все анкеты передаются напрямую работодателю. Выберите предложение, чтобы узнать больше или откликнуться.</p>
       </div>
