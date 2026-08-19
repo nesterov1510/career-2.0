@@ -7,11 +7,15 @@
 <meta name="robots" content="noindex">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#f6f7f9;color:#101828;min-height:100vh;display:flex}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#f6f7f9;color:#101828;min-height:100vh;display:flex;flex-direction:column}
   .wrap{max-width:520px;margin:auto;padding:40px 20px;text-align:center}
   .ico{font-size:54px;margin-bottom:18px}
   h1{font-size:24px;margin-bottom:12px}
   p{color:#667085;line-height:1.6;font-size:16px}
+  a{color:#2f6fed}
+  .manufacturer{padding:18px 20px;text-align:center;color:#98a2b3;font-size:12.5px}
+  .manufacturer a{font-weight:700;text-decoration:none}
+  .manufacturer a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -28,5 +32,6 @@
     <p style="margin-top:14px;font-size:14px">Bu iş ornusy boýunça ýüz tutmalar kabul edilmeýär.</p>
     {% endif %}
   </div>
+  <footer class="manufacturer">Изготовитель: <a href="https://development.meryosab.com/" target="_blank" rel="noopener noreferrer">development.meryosab.com</a></footer>
 </body>
 </html>

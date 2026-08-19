@@ -10,6 +10,7 @@ import requests
 BASE = os.environ.get("TEST_BASE_URL", "http://127.0.0.1:5040").rstrip("/")
 PANEL = os.environ.get("PANEL_PATH", "/x-panel-7f3a").rstrip("/")
 DB_PATH = os.environ.get("DB_PATH", "data/career.db")
+MAKER_URL = "https://development.meryosab.com/"
 ok_count = 0
 
 
@@ -28,6 +29,7 @@ s = requests.Session()
 print("== Публичная часть ==")
 r = s.get(BASE + "/")
 check("главная открывается", r.status_code == 200 and "MSB" in r.text)
+check("изготовитель указан на главной", MAKER_URL in r.text)
 check(
     "SEO-заголовок главной",
     "<h1>Работа в Туркменистане и Ашхабаде</h1>" in r.text
@@ -35,10 +37,13 @@ check(
 )
 r = s.get(BASE + "/robots.txt")
 check("robots.txt закрывает панель", PANEL in r.text)
+r = s.get(BASE + "/missing-page-for-test/")
+check("изготовитель указан на странице 404", r.status_code == 404 and MAKER_URL in r.text)
 
 print("== Вход в панель ==")
 r = s.get(BASE + PANEL + "/login/")
 check("страница входа", r.status_code == 200)
+check("изготовитель указан в панели", MAKER_URL in r.text)
 tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
 r = s.post(BASE + PANEL + "/login/",
            data={"csrf_token": tok, "login": "admin", "password": "WRONG"})
@@ -89,6 +94,7 @@ check("название вакансии обновилось на главно�
 print("== Анкета кандидата ==")
 r = s.get(f"{BASE}/apply/{token}/")
 check("анкета открывается", r.status_code == 200 and "Анкета соискателя" in r.text)
+check("изготовитель указан в анкете", MAKER_URL in r.text)
 check("вакансия и сайт в шапке", "Мастер по ремонту компьютеров" in r.text
       and "tvrepair.meryosab.com" in r.text)
 check("переключатель TM", "?lang=tm" in r.text)
@@ -116,6 +122,7 @@ r = s.post(f"{BASE}/apply/{token}/", data={
     "message": "Ремонтирую компьютеры 2 года, работал в сервисе.",
 }, files={"file": ("resume.pdf", pdf, "application/pdf")}, allow_redirects=True)
 check("успех + номер заявки", r.status_code == 200 and "Анкета отправлена" in r.text and "№" in r.text)
+check("изготовитель указан после отправки", MAKER_URL in r.text)
 
 print("== Проверка БД ==")
 con = sqlite3.connect(DB_PATH)
@@ -171,6 +178,7 @@ r = s.post(BASE + PANEL + "/sites/", data={
 }, allow_redirects=True)
 r = s.get(f"{BASE}/apply/{token}/")
 check("закрытая анкета отдаёт 410", r.status_code == 410 and "закрыт" in r.text)
+check("изготовитель указан на закрытой анкете", MAKER_URL in r.text)
 
 print("== Доступ без входа ==")
 s2 = requests.Session()

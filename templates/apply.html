@@ -75,6 +75,8 @@
   .alert{border-radius:13px;padding:13px 16px;font-size:14px;margin-bottom:16px;display:none}
   .alert.err{display:block;background:var(--err-bg);color:var(--err);border:1px solid #fecdca}
   .foot{text-align:center;color:var(--muted);font-size:12.5px;margin-top:26px}
+  .foot a{color:var(--acc);font-weight:700;text-decoration:none}
+  .foot a:hover{text-decoration:underline}
   .hp{position:absolute;left:-9999px;top:auto;opacity:0;height:0;overflow:hidden}
 </style>
 </head>
@@ -255,7 +257,10 @@
     </button>
   </form>
 
-  <div class="foot">MSB Career · {{ site.name }} · {{ current_year }}</div>
+  <div class="foot">
+    MSB Career · {{ site.name }} · {{ current_year }}<br>
+    Изготовитель: <a href="https://development.meryosab.com/" target="_blank" rel="noopener noreferrer">development.meryosab.com</a>
+  </div>
 </div>
 
 <script>

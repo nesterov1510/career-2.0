@@ -101,7 +101,9 @@
   .step strong{display:block;color:var(--navy);margin-bottom:2px}
 
   footer{background:#fff;border-top:1px solid var(--line);padding:25px 0;color:#98a2b3;font-size:13px}
-  .footer-inner{display:flex;align-items:center;justify-content:space-between;gap:20px}
+  .footer-inner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .maker a{color:var(--blue);font-weight:700}
+  .maker a:hover{text-decoration:underline}
 
   @media(max-width:760px){
     .container{width:min(100% - 28px,1120px)}
@@ -219,6 +221,7 @@
     <div class="container footer-inner">
       <span>© {{ current_year }} MSB Career</span>
       <span>Сервис анкет для сайтов вакансий</span>
+      <span class="maker">Изготовитель: <a href="https://development.meryosab.com/" target="_blank" rel="noopener noreferrer">development.meryosab.com</a></span>
     </div>
   </footer>
 </body>
