@@ -28,9 +28,12 @@
   .side form{margin:0}
   .side button.nav{width:100%;border:0;background:transparent;font:inherit;cursor:pointer}
   .side .out{font-size:13px;opacity:.8}
-  .main{flex:1;padding:26px 30px;min-width:0}
+  .main{flex:1;padding:26px 30px;min-width:0;display:flex;flex-direction:column}
   .main h1{font-size:22px;margin-bottom:4px}
   .main .sub{color:var(--muted);margin-bottom:22px}
+  .manufacturer{margin-top:auto;padding:24px 0 2px;text-align:center;color:#98a2b3;font-size:12.5px}
+  .manufacturer a{color:var(--acc);font-weight:700;text-decoration:none}
+  .manufacturer a:hover{text-decoration:underline}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
   .card h2{font-size:16px;margin-bottom:14px}
@@ -95,9 +98,10 @@
   <aside class="side">
     <div class="brand"><span class="dot">M</span> MSB Career</div>
     <a class="nav {{ 'on' if active == 'admin.dashboard' }}" href="{{ url_for('admin.dashboard') }}">📊 Дашборд</a>
-    <a class="nav {{ 'on' if active == 'admin.sites' }}" href="{{ url_for('admin.sites') }}">🌐 Сайты</a>
+    <a class="nav {{ 'on' if active == 'admin.sites' }}" href="{{ url_for('admin.sites') }}">💼 Сайты и вакансии</a>
     <a class="nav {{ 'on' if active and active.startswith('admin.app') }}" href="{{ url_for('admin.apps') }}">📥 Заявки</a>
     <a class="nav {{ 'on' if active and active.startswith('admin.settings') }}" href="{{ url_for('admin.settings') }}">⚙️ Настройки</a>
+    <a class="nav" href="{{ url_for('index') }}" target="_blank" rel="noopener">↗ Открыть главную</a>
     <div class="spacer"></div>
     <form method="post" action="{{ url_for('admin.logout') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -110,6 +114,7 @@
       {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
     {% endwith %}
     {% block content %}{% endblock %}
+    <footer class="manufacturer">Изготовитель: <a href="https://development.meryosab.com/" target="_blank" rel="noopener noreferrer">development.meryosab.com</a></footer>
   </main>
 </div>
 </body>

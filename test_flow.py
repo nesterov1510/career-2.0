@@ -10,6 +10,7 @@ import requests
 BASE = os.environ.get("TEST_BASE_URL", "http://127.0.0.1:5040").rstrip("/")
 PANEL = os.environ.get("PANEL_PATH", "/x-panel-7f3a").rstrip("/")
 DB_PATH = os.environ.get("DB_PATH", "data/career.db")
+MAKER_URL = "https://development.meryosab.com/"
 ok_count = 0
 
 
@@ -28,12 +29,21 @@ s = requests.Session()
 print("== Публичная часть ==")
 r = s.get(BASE + "/")
 check("главная открывается", r.status_code == 200 and "MSB" in r.text)
+check("изготовитель указан на главной", MAKER_URL in r.text)
+check(
+    "SEO-заголовок главной",
+    "<h1>Работа в Туркменистане и Ашхабаде</h1>" in r.text
+    and "Работа в Туркменистане и Ашхабаде — свежие вакансии" in r.text,
+)
 r = s.get(BASE + "/robots.txt")
 check("robots.txt закрывает панель", PANEL in r.text)
+r = s.get(BASE + "/missing-page-for-test/")
+check("изготовитель указан на странице 404", r.status_code == 404 and MAKER_URL in r.text)
 
 print("== Вход в панель ==")
 r = s.get(BASE + PANEL + "/login/")
 check("страница входа", r.status_code == 200)
+check("изготовитель указан в панели", MAKER_URL in r.text)
 tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
 r = s.post(BASE + PANEL + "/login/",
            data={"csrf_token": tok, "login": "admin", "password": "WRONG"})
@@ -50,7 +60,7 @@ tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
 r = s.post(BASE + PANEL + "/sites/", data={
     "csrf_token": tok, "action": "add",
     "name": "TV Repair by Meryosab",
-    "url": "https://tvrepair.meryosab.com",
+    "url": "https://tvrepair.meryosab.com/vacancies/",
     "vacancy": "Мастер по ремонту компьютеров и ноутбуков",
 }, allow_redirects=True)
 check("сайт добавлен", "Сайт добавлен" in r.text and "apply/" in r.text)
@@ -58,10 +68,33 @@ m = re.search(r'value="http://127\.0\.0\.1:5040/apply/([^/]+)/"', r.text)
 check("ссылка с токеном сгенерирована", bool(m))
 token = m.group(1)
 print(f"    ссылка анкеты: /apply/{token}/")
+r = s.get(BASE + "/")
+check(
+    "вакансия появилась на главной",
+    "TV Repair by Meryosab" in r.text
+    and "Мастер по ремонту компьютеров" in r.text
+    and f"/apply/{token}/" in r.text
+    and "Посмотреть вакансии сайта" in r.text
+    and 'href="https://tvrepair.meryosab.com/vacancies/"' in r.text,
+)
+
+print("== Редактирование вакансии ==")
+r = s.get(BASE + PANEL + "/sites/")
+tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
+sid = re.search(r'name="site_id" value="(\d+)"', r.text).group(1)
+r = s.post(BASE + PANEL + "/sites/", data={
+    "csrf_token": tok, "site_id": sid, "action": "update",
+    "name": "TV Repair by Meryosab", "url": "https://tvrepair.meryosab.com/vacancies/",
+    "vacancy": "Мастер по ремонту компьютеров и ноутбуков — обновлено",
+}, allow_redirects=True)
+check("изменения сохранены в панели", "Изменения сохранены" in r.text)
+r = s.get(BASE + "/")
+check("название вакансии обновилось на главной", "— обновлено" in r.text)
 
 print("== Анкета кандидата ==")
 r = s.get(f"{BASE}/apply/{token}/")
-check("анкета открывается", r.status_code == 200 and "Анкета кандидата" in r.text)
+check("анкета открывается", r.status_code == 200 and "Анкета соискателя" in r.text)
+check("изготовитель указан в анкете", MAKER_URL in r.text)
 check("вакансия и сайт в шапке", "Мастер по ремонту компьютеров" in r.text
       and "tvrepair.meryosab.com" in r.text)
 check("переключатель TM", "?lang=tm" in r.text)
@@ -89,6 +122,7 @@ r = s.post(f"{BASE}/apply/{token}/", data={
     "message": "Ремонтирую компьютеры 2 года, работал в сервисе.",
 }, files={"file": ("resume.pdf", pdf, "application/pdf")}, allow_redirects=True)
 check("успех + номер заявки", r.status_code == 200 and "Анкета отправлена" in r.text and "№" in r.text)
+check("изготовитель указан после отправки", MAKER_URL in r.text)
 
 print("== Проверка БД ==")
 con = sqlite3.connect(DB_PATH)
@@ -139,11 +173,12 @@ tok = re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
 sid = re.search(r'name="site_id" value="(\d+)"', r.text).group(1)
 r = s.post(BASE + PANEL + "/sites/", data={
     "csrf_token": tok, "site_id": sid, "action": "update",
-    "name": "TV Repair by Meryosab", "url": "https://tvrepair.meryosab.com",
+    "name": "TV Repair by Meryosab", "url": "https://tvrepair.meryosab.com/vacancies/",
     "vacancy": "Мастер по ремонту компьютеров и ноутбуков", "is_closed": "1",
 }, allow_redirects=True)
 r = s.get(f"{BASE}/apply/{token}/")
 check("закрытая анкета отдаёт 410", r.status_code == 410 and "закрыт" in r.text)
+check("изготовитель указан на закрытой анкете", MAKER_URL in r.text)
 
 print("== Доступ без входа ==")
 s2 = requests.Session()

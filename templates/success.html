@@ -19,6 +19,9 @@
   .return{margin-top:20px;padding:12px 16px;background:#eef3ff;border-radius:12px;font-size:14px!important}
   .return a{color:var(--acc);font-weight:700;text-decoration:none}
   .foot{color:#98a2b3;font-size:12.5px;margin-top:34px}
+  .manufacturer{padding:18px 20px;text-align:center;color:#98a2b3;font-size:12.5px}
+  .manufacturer a{color:var(--acc);font-weight:700;text-decoration:none}
+  .manufacturer a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -45,6 +48,7 @@
     {% endif %}
     <div class="foot">MSB Career · {{ current_year }}</div>
   </div>
+  <footer class="manufacturer">Изготовитель: <a href="https://development.meryosab.com/" target="_blank" rel="noopener noreferrer">development.meryosab.com</a></footer>
   {% if return_url %}
   <script>
     const destination = {{ return_url|tojson }};

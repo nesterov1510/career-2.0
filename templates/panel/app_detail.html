@@ -46,7 +46,7 @@
   <h2>Источник</h2>
   <table>
     <tr><td class="muted" style="width:180px">Сайт</td><td><b>{{ row.site_name or 'сайт удалён' }}</b></td></tr>
-    {% if row.site_url %}<tr><td class="muted">Адрес</td><td><a href="{{ row.site_url }}" target="_blank" rel="noopener">{{ row.site_url }} ↗</a></td></tr>{% endif %}
+    {% if row.site_url %}<tr><td class="muted">Вакансии сайта</td><td><a href="{{ row.site_url }}" target="_blank" rel="noopener">{{ row.site_url }} ↗</a></td></tr>{% endif %}
     <tr><td class="muted">Отправка в Telegram</td>
       <td>
         {% if row.tg_ok %}<span class="pill green">доставлено ✓</span>

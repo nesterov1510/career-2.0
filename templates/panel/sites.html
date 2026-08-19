@@ -1,29 +1,37 @@
 {% extends "panel/base.html" %}
-{% block title %}Сайты{% endblock %}
+{% block title %}Сайты и вакансии{% endblock %}
 {% block content %}
-<h1>Сайты-источники</h1>
-<div class="sub">Каждому сайту — своя ссылка на анкету. В Telegram будет видно, с какого сайта пришла заявка.</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
+  <div>
+    <h1>Сайты и вакансии</h1>
+    <div class="sub">Добавленные записи сразу появляются на главной. Здесь можно менять компанию, вакансию, ссылку на список вакансий сайта и статус приёма.</div>
+  </div>
+  <a class="btn ghost" href="{{ url_for('index') }}" target="_blank" rel="noopener">Посмотреть главную ↗</a>
+</div>
 
 <div class="card">
-  <h2>➕ Добавить сайт</h2>
+  <h2>➕ Добавить вакансию</h2>
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="add">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
       <div class="field">
-        <label>Название сайта *</label>
+        <label>Компания / сайт *</label>
         <input type="text" name="name" placeholder="TV Repair by Meryosab" required maxlength="140">
+        <div class="hint">Название будет показано на карточке вакансии.</div>
       </div>
       <div class="field">
-        <label>Адрес сайта (URL)</label>
-        <input type="url" name="url" placeholder="https://tvrepair.meryosab.com">
+        <label>Ссылка на все вакансии сайта</label>
+        <input type="url" name="url" placeholder="https://example.com/vacancies/">
+        <div class="hint">Вставьте страницу со списком вакансий. На главной появится кнопка «Посмотреть вакансии сайта».</div>
       </div>
       <div class="field">
-        <label>Вакансия по умолчанию</label>
+        <label>Название вакансии</label>
         <input type="text" name="vacancy" placeholder="Мастер по ремонту компьютеров" maxlength="200">
+        <div class="hint">Главный заголовок карточки на главной странице.</div>
       </div>
     </div>
-    <button class="btn" type="submit">Добавить и создать ссылку</button>
+    <button class="btn" type="submit">Добавить на главную</button>
   </form>
 </div>
 
@@ -36,9 +44,10 @@
 
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
       <div>
-        <div style="font-size:16px;font-weight:800">{{ s.name }}
-          {% if not s.is_active %}<span class="pill gray">выключен</span>{% endif %}
+        <div style="font-size:16px;font-weight:800">{{ s.vacancy or s.name }}
+          {% if not s.is_active %}<span class="pill gray">скрыта с главной</span>{% endif %}
         </div>
+        {% if s.vacancy %}<div class="muted" style="font-size:13px;margin-top:2px">{{ s.name }}</div>{% endif %}
         <div class="muted" style="font-size:12.5px">создан {{ fmt_dt(s.created_at) }} · slug: <span class="mono">{{ s.slug }}</span></div>
       </div>
       <div class="row-actions">
@@ -48,26 +57,27 @@
     </div>
 
     <div class="field">
-      <label>Ссылка на анкету этого сайта</label>
+      <label>Прямая ссылка на анкету</label>
       <div class="row-actions">
         <input type="text" readonly class="mono" id="link-{{ s.id }}" value="{{ url_for('apply_form', token_or_slug=s.token, _external=True) }}">
         <button type="button" class="btn ghost sm" onclick="copyLink({{ s.id }}, this)">📋 Копировать</button>
         <a class="btn ghost sm" href="{{ url_for('apply_form', token_or_slug=s.token) }}" target="_blank">Открыть ↗</a>
       </div>
-      <div class="hint">Вставьте эту ссылку в кнопку «Заполнить анкету» на странице вакансии. Токен уникален и скрыт от посторонних.</div>
+      <div class="hint">Кнопка «Откликнуться» на главной уже ведёт сюда. Эту же ссылку можно разместить на сайте компании.</div>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
       <div class="field">
-        <label>Название сайта</label>
+        <label>Компания / сайт</label>
         <input type="text" name="name" value="{{ s.name }}" required maxlength="140">
       </div>
       <div class="field">
-        <label>Адрес сайта (URL)</label>
-        <input type="url" name="url" value="{{ s.url or '' }}">
+        <label>Ссылка на все вакансии сайта</label>
+        <input type="url" name="url" value="{{ s.url or '' }}" placeholder="https://example.com/vacancies/">
+        <div class="hint">Сюда ведёт кнопка «Посмотреть вакансии сайта» на главной.</div>
       </div>
       <div class="field">
-        <label>Вакансия по умолчанию</label>
+        <label>Название вакансии</label>
         <input type="text" name="vacancy" value="{{ s.vacancy or '' }}" maxlength="200">
       </div>
     </div>
@@ -75,7 +85,7 @@
     <div class="field">
       <label style="display:flex;gap:8px;align-items:center;font-weight:600">
         <input type="checkbox" name="is_closed" value="1" {{ 'checked' if s.is_closed }} style="width:auto">
-        Закрыть приём анкет (страница покажет «приём закрыт»)
+        Закрыть приём анкет (карточка останется на главной со статусом «Приём закрыт»)
       </label>
     </div>
 
@@ -95,7 +105,7 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="site_id" value="{{ s.id }}">
       <input type="hidden" name="action" value="toggle">
-      <button class="btn ghost" type="submit">{{ '🚫 Выключить' if s.is_active else '✅ Включить' }}</button>
+      <button class="btn ghost" type="submit">{{ '🙈 Скрыть с главной' if s.is_active else '👁 Опубликовать на главной' }}</button>
     </form>
     <form method="post" onsubmit="return confirm('Удалить сайт и ВСЕ его заявки вместе с файлами? Это необратимо.')">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
