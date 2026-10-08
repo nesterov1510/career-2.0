@@ -209,6 +209,7 @@ sudo systemctl show msb-career -p User -p Environment -p ProtectSystem -p Protec
 sudo systemctl cat msb-career
 grep -E '^(DB_PATH|UPLOAD_DIR)=' /home/windowrepair-ae/msb-career/.env
 ls -la /home/windowrepair-ae/msb-career/data/
+sudo stat -c '%A %a %U:%G %n' /home/windowrepair-ae/msb-career/data /home/windowrepair-ae/msb-career/data/career.db
 namei -l /home/windowrepair-ae/msb-career/data/career.db
 df -h /home
 sudo -u windowrepair-ae touch /home/windowrepair-ae/msb-career/data/.wtest
@@ -228,6 +229,22 @@ cd /home/windowrepair-ae/msb-career && sudo -u windowrepair-ae bash -c 'set -a; 
 systemd-файл окружения не загружен; а если в журнале видно лишь
 `HaltServer: Worker failed to boot` — это реакция мастера gunicorn,
 настоящий traceback воркера выше: `sudo journalctl -u msb-career -n 150 --no-pager`.
+
+Характерная картина «режимной» поломки: `ls -la data/` от имени пользователя
+печатает `d????????? ? ? ? ? ? .` и `Permission denied` на каждую запись —
+у каталога нет бита выполнения (x), поэтому видны имена, но нельзя ни войти
+в каталог, ни открыть файл внутри (sqlite при этом падает с `unable to open
+database file`). `chown` режимы не меняет, лечит только `chmod`:
+
+```bash
+sudo chown -R windowrepair-ae:windowrepair-ae /home/windowrepair-ae/msb-career
+sudo find /home/windowrepair-ae/msb-career -type d -exec chmod 750 {} +
+sudo find /home/windowrepair-ae/msb-career -type f -exec chmod 640 {} +
+sudo chmod 600 /home/windowrepair-ae/msb-career/.env
+sudo systemctl restart msb-career
+```
+
+То же самое делает `deploy/install.sh`.
 
 Сайт будет доступен по адресу `http://SERVER_IP:5040`. При включённом firewall
 откройте TCP-порт 5040. Прямой HTTP не шифрует пароль и токены; для публичного

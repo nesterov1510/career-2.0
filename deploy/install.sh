@@ -34,12 +34,17 @@ echo "== Права на каталог проекта ($APP_DIR) =="
 # Сервис работает от имени $SERVICE_USER и chdir'ится в $APP_DIR,
 # поэтому каждый компонент пути должен быть доступен этому пользователю.
 chown -R "$SERVICE_USER:$SERVICE_USER" "$APP_DIR"
-chmod 750 "$APP_DIR"
 # Каталоги, куда приложение пишет (SQLite-база и загруженные резюме).
 mkdir -p "$APP_DIR/data" "$APP_DIR/uploads"
-chown -R "$SERVICE_USER:$SERVICE_USER" "$APP_DIR/data" "$APP_DIR/uploads"
+# Режимы: каталогам обязательно нужен бит выполнения x (traverse), иначе
+# sqlite не сможет ни открыть, ни создать файл базы внутри data/, а ls
+# покажет каталог как "d?????????". chown режимы не меняет — только chmod.
+find "$APP_DIR" -type d -exec chmod 750 {} +
+find "$APP_DIR" -type f -exec chmod 640 {} +
+if [ -f "$APP_DIR/deploy/install.sh" ]; then
+    chmod 750 "$APP_DIR/deploy/install.sh"
+fi
 if [ -f "$APP_DIR/.env" ]; then
-    chown "$SERVICE_USER:$SERVICE_USER" "$APP_DIR/.env"
     chmod 600 "$APP_DIR/.env"
 fi
 
