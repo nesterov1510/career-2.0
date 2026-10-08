@@ -170,6 +170,33 @@ sudo systemctl restart msb-career
 
 То же самое одной командой: `sudo bash deploy/install.sh`.
 
+#### Nginx отдаёт 502 Bad Gateway
+
+`502` значит, что nginx не получил ответа от приложения. Проверьте:
+
+```bash
+sudo systemctl is-active msb-career               # сервис стабильно в active?
+sudo journalctl -u msb-career -n 50 --no-pager    # логи gunicorn и ошибки Python
+sudo ss -tlnp | grep 5040                         # слушает ли приложение порт 5040
+curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5040/
+sudo nginx -T 2>/dev/null | grep -n 'proxy_pass'   # на какой порт смотрит nginx
+sudo tail -n 20 /var/log/nginx/error.log
+```
+
+Частые причины:
+
+- приложение падает после старта из-за ошибки Python — например, нет прав на
+  запись в `data/` (база SQLite создаётся при импорте `wsgi.py`) или не
+  установлены зависимости. Лечение: `sudo chown -R windowrepair-ae:windowrepair-ae /home/windowrepair-ae/msb-career`,
+  `sudo python3 -m pip install --break-system-packages -r requirements.txt`,
+  затем `sudo systemctl restart msb-career`;
+- в конфиге nginx другой порт в `proxy_pass` — он должен совпадать с
+  `--bind 0.0.0.0:5040` из юнита, то есть `proxy_pass http://127.0.0.1:5040;`;
+- сайт не включён или nginx не перезагружен: `sudo nginx -t && sudo systemctl reload nginx`.
+
+`deploy/install.sh` после перезапуска сам проверяет, слушает ли сервис порт и
+отвечает ли главная страница.
+
 Сайт будет доступен по адресу `http://SERVER_IP:5040`. При включённом firewall
 откройте TCP-порт 5040. Прямой HTTP не шифрует пароль и токены; для публичного
 интернет-сервера рекомендуется HTTPS через reverse proxy.

@@ -57,6 +57,22 @@ systemctl enable msb-career
 systemctl restart msb-career
 sleep 2
 
+echo "== Проверка =="
+BIND="$(awk '{for (i=1; i<NF; i++) if ($i=="--bind") print $(i+1)}' "$UNIT_SRC")"
+PORT="${BIND##*:}"
+systemctl is-active msb-career || echo "Внимание: сервис не в active!" >&2
+if command -v ss >/dev/null 2>&1; then
+    if ss -tln | grep -qE "[:.]$PORT\b"; then
+        echo "Порт $PORT слушается."
+    else
+        echo "Внимание: порт $PORT не слушается. Смотрите: sudo journalctl -u msb-career -n 50" >&2
+    fi
+fi
+if command -v curl >/dev/null 2>&1; then
+    code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:$PORT/" || true)"
+    echo "Главная страница отвечает кодом: ${code:-нет ответа}"
+fi
+
 systemctl status msb-career --no-pager -l || true
 echo
 echo "Готово. Логи: sudo journalctl -u msb-career -f"
