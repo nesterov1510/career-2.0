@@ -108,6 +108,13 @@ sudo systemctl enable --now msb-career
 sudo systemctl status msb-career
 ```
 
+Или одной командой — `deploy/install.sh` сам выставит владельца и права на
+проект, `data/` и `uploads/`, установит юнит и перезапустит сервис:
+
+```bash
+sudo bash deploy/install.sh
+```
+
 Для прямого HTTP-доступа задайте в `.env`:
 
 ```env
@@ -122,6 +129,46 @@ TRUST_PROXY=false
 sudo journalctl -u msb-career -f
 sudo systemctl restart msb-career
 ```
+
+#### Сервис падает с `status=200/CHDIR` и постоянно перезапускается
+
+Если в `journalctl -u msb-career` видно:
+
+```
+msb-career.service: Changing to the requested working directory failed: Permission denied
+msb-career.service: Main process exited, code=exited, status=200/CHDIR
+```
+
+то systemd не смог перейти в `WorkingDirectory` от имени `User=` из юнита
+и завершил процесс до запуска gunicorn. Из-за `Restart=always` сервис
+пытается стартовать снова каждые 5 секунд.
+
+Для `chdir` нужны права на выполнение (x) на **каждом** компоненте пути
+`/home/windowrepair-ae/msb-career`. Проверьте:
+
+```bash
+namei -l /home/windowrepair-ae/msb-career       # права каждого компонента пути
+id windowrepair-ae                             # существует ли пользователь
+systemctl cat msb-career                       # какой юнит реально загружен
+ls /etc/systemd/system/msb-career.service.d/   # нет ли drop-in переопределений
+sudo -u windowrepair-ae test -x /home/windowrepair-ae/msb-career && echo OK || echo DENIED
+```
+
+Частые причины: каталог проекта или домашний каталог принадлежат `root`
+(например, репозиторий клонировали через `sudo`), в юните на сервере другой
+`User=` (например, `www-data` из общего примера выше), либо drop-in с
+`ProtectHome=yes` делает `/home` недоступным. Лечение — выровнять владельца,
+права и юнит:
+
+```bash
+sudo chown -R windowrepair-ae:windowrepair-ae /home/windowrepair-ae/msb-career
+sudo chmod 750 /home/windowrepair-ae/msb-career
+sudo cp deploy/msb-career.service /etc/systemd/system/msb-career.service
+sudo systemctl daemon-reload
+sudo systemctl restart msb-career
+```
+
+То же самое одной командой: `sudo bash deploy/install.sh`.
 
 Сайт будет доступен по адресу `http://SERVER_IP:5040`. При включённом firewall
 откройте TCP-порт 5040. Прямой HTTP не шифрует пароль и токены; для публичного
