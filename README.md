@@ -223,6 +223,12 @@ cd /home/windowrepair-ae/msb-career && sudo -u windowrepair-ae bash -c 'set -a; 
 установить юнит из репозитория целиком (там `User=windowrepair-ae` и
 `ProtectHome=false`) и проверить каталог, куда смотрит `DB_PATH`.
 
+Два нюанса: приложение читает `.env` самостоятельно (`load_dotenv` в
+`models.py`), поэтому `DB_PATH` может прийти из `.env`, даже если
+systemd-файл окружения не загружен; а если в журнале видно лишь
+`HaltServer: Worker failed to boot` — это реакция мастера gunicorn,
+настоящий traceback воркера выше: `sudo journalctl -u msb-career -n 150 --no-pager`.
+
 Сайт будет доступен по адресу `http://SERVER_IP:5040`. При включённом firewall
 откройте TCP-порт 5040. Прямой HTTP не шифрует пароль и токены; для публичного
 интернет-сервера рекомендуется HTTPS через reverse proxy.
