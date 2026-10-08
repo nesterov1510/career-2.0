@@ -199,6 +199,30 @@ sudo tail -n 20 /var/log/nginx/error.log
 `deploy/install.sh` после перезапуска сам проверяет, слушает ли сервис порт и
 отвечает ли главная страница.
 
+#### После `chown -R` ошибка `unable to open database file` осталась
+
+Если проект уже принадлежит `windowrepair-ae`, а sqlite всё равно не может
+открыть базу, причина не в unix-правах на проект. Проверьте:
+
+```bash
+sudo systemctl show msb-career -p User -p Environment -p ProtectSystem -p ProtectHome -p ReadWritePaths
+sudo systemctl cat msb-career
+grep -E '^(DB_PATH|UPLOAD_DIR)=' /home/windowrepair-ae/msb-career/.env
+ls -la /home/windowrepair-ae/msb-career/data/
+namei -l /home/windowrepair-ae/msb-career/data/career.db
+df -h /home
+sudo -u windowrepair-ae touch /home/windowrepair-ae/msb-career/data/.wtest
+cd /home/windowrepair-ae/msb-career && sudo -u windowrepair-ae bash -c 'set -a; [ -f .env ] && . ./.env; set +a; python3 -c "import models; print(models.DB_PATH); models.init_db(); print(\"init_db OK\")"'
+```
+
+Частые причины: в юните на сервере другой `User=` (например, `www-data` —
+тогда `chown` на `windowrepair-ae` не помогает), `ProtectSystem=strict` или
+`ProtectHome=read-only` (тогда файловая система смонтирована read-only для
+сервиса и `chown` бессилен), `DB_PATH` в `.env` переопределён на каталог вне
+проекта, `data` — symlink на чужой каталог, либо диск переполнен. Лечение —
+установить юнит из репозитория целиком (там `User=windowrepair-ae` и
+`ProtectHome=false`) и проверить каталог, куда смотрит `DB_PATH`.
+
 Сайт будет доступен по адресу `http://SERVER_IP:5040`. При включённом firewall
 откройте TCP-порт 5040. Прямой HTTP не шифрует пароль и токены; для публичного
 интернет-сервера рекомендуется HTTPS через reverse proxy.
