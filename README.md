@@ -185,11 +185,13 @@ sudo tail -n 20 /var/log/nginx/error.log
 
 Частые причины:
 
-- приложение падает после старта из-за ошибки Python — например, нет прав на
-  запись в `data/` (база SQLite создаётся при импорте `wsgi.py`) или не
-  установлены зависимости. Лечение: `sudo chown -R windowrepair-ae:windowrepair-ae /home/windowrepair-ae/msb-career`,
-  `sudo python3 -m pip install --break-system-packages -r requirements.txt`,
-  затем `sudo systemctl restart msb-career`;
+- приложение падает после старта из-за ошибки Python. Самая частая — в журнале
+  видно `sqlite3.OperationalError: unable to open database file`: каталог `data/`
+  (база SQLite создаётся при импорте `wsgi.py`) или `uploads/` принадлежит не
+  тому пользователю, например `root`. Лечение:
+  `sudo chown -R windowrepair-ae:windowrepair-ae /home/windowrepair-ae/msb-career`,
+  затем `sudo systemctl restart msb-career`. Если зависимости не установлены —
+  `sudo python3 -m pip install --break-system-packages -r requirements.txt`;
 - в конфиге nginx другой порт в `proxy_pass` — он должен совпадать с
   `--bind 0.0.0.0:5040` из юнита, то есть `proxy_pass http://127.0.0.1:5040;`;
 - сайт не включён или nginx не перезагружен: `sudo nginx -t && sudo systemctl reload nginx`.
